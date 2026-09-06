@@ -35,7 +35,7 @@
             <div class="d-flex justify-content-center gap-3">
                 @auth
                     <!-- Tombol untuk user yang sudah login -->
-                    <a href="#pilih-kendaraan" class="btn btn-primary btn-lg px-4 rounded-3 shadow-sm fs-6">
+                    <a href="{{ route('motorcycles.index') }}" class="btn btn-primary btn-lg px-4 rounded-3 shadow-sm fs-6">
                         <i class="bi bi-scooter me-1"></i> Pilih Kendaraan
                     </a>
                 @else
