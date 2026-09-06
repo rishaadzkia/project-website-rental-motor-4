@@ -18,6 +18,7 @@ class User extends Authenticatable
         'no_sim',
         'alamat',
         'password',
+        'role',          // ← wajib
     ];
 
     protected $hidden = [
@@ -31,5 +32,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // ← wajib ada
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
     }
 }
