@@ -5,12 +5,18 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\MotorcycleController as AdminMotorcycleController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\User\MotorcycleController as UserMotorcycleController;
 
 // Landing Page
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+// Profile
+Route::middleware(['auth'])->group(function () {
+    Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
+});
 
 // Guest Only
 Route::middleware('guest')->group(function () {

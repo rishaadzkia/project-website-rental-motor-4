@@ -35,7 +35,7 @@
                 </a>
 
                 <!-- Menu Kendaraan -->
-                <a href="{{ route('admin.motors.index') }}" 
+                <a href="{{ route('motorcycles.index') }}" 
                    class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.motors.*') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
                     <i class="bi bi-scooter me-2"></i> Kendaraan
                 </a>
