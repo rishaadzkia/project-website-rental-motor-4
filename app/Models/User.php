@@ -18,7 +18,8 @@ class User extends Authenticatable
         'no_sim',
         'alamat',
         'password',
-        'role',          // ← wajib
+        'role', 
+        'avatar'          // ← wajib
     ];
 
     protected $hidden = [
