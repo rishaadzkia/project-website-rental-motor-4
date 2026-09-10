@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Coderflex\LaravelTurnstile\Rules\TurnstileCheck;
 
 class RegisterController extends Controller
 {
@@ -25,7 +26,11 @@ class RegisterController extends Controller
             'email'    => 'nullable|email|unique:users,email', // Opsional, diisi jika UI nanti ada email
             'alamat'   => 'nullable|string',                  // Opsional
             'password' => 'required|string|min:8|confirmed',
-        ]);
+            'cf-turnstile-response' => ['required', new TurnstileCheck()],
+        ],
+        [
+        'cf-turnstile-response.required' => 'Verifikasi keamanan wajib diisi.',
+    ]);
 
         // 2. Buat user baru (Password otomatis di-hash oleh Cast di Model)
         $user = User::create([

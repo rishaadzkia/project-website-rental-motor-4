@@ -2,6 +2,11 @@
 
 @section('title', 'Buat Akun - ED.RENT')
 
+@push('styles')
+    <!-- Script Official Cloudflare Turnstile -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+@endpush
+
 @section('content')
 <div class="container-fluid p-0 min-vh-100 d-flex align-items-center bg-light">
     <div class="row g-0 w-100 min-vh-100">
@@ -103,6 +108,17 @@
                             class="form-control form-control-lg fs-6 rounded-3 bg-light border-0 px-3 py-2-5 @error('no_sim') is-invalid @enderror">
                         @error('no_sim')
                             <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <!-- Widget Cloudflare Turnstile Native -->
+                    <div class="mb-3 d-flex flex-column align-items-center">
+                        <div class="cf-turnstile" data-sitekey="{{ config('turnstile.turnstile_site_key', env('TURNSTILE_SITE_KEY')) }}"></div>
+                        
+                        @error('cf-turnstile-response')
+                            <div class="text-danger small mt-2 text-center">
+                                {{ $message }}
+                            </div>
                         @enderror
                     </div>
 
