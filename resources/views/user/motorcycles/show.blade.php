@@ -84,16 +84,13 @@
                                     <i class="bi bi-arrow-left me-1"></i> Kembali
                                 </a>
 
-                                @if($motorcycle->status === 'available')
-                                    {{-- Nanti diganti ke route booking Teman 2 --}}
-                                    <a href="#" class="btn btn-primary flex-grow-1">
-                                        <i class="bi bi-calendar-check me-1"></i> Rental Motor
-                                    </a>
-                                @else
-                                    <button class="btn btn-secondary flex-grow-1" disabled>
-                                        Tidak Tersedia
-                                    </button>
-                                @endif
+                            @if ($motorcycle->status === 'available')
+                                <a href="{{ route('bookings.create', $motorcycle) }}" class="btn btn-primary">
+                                    <i class="bi bi-calendar-check me-1"></i> Booking Motor
+                                </a>
+                            @else
+                                <p>Motor sedang tidak tersedia.</p>
+                            @endif
                             </div>
                         </div>
                     </div>

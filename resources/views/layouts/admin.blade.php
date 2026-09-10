@@ -34,9 +34,15 @@
                     <i class="bi bi-bag me-2"></i> Daftar Pesanan
                 </a>
 
+                {{-- Menu Tambah Kendaraan --}}
+                <a href="{{ route('admin.motorcycles.create') }}" 
+                   class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.motorcycles.create') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
+                    <i class="bi bi-plus-circle me-2"></i> Tambah Kendaraan
+                </a>
+
                 <!-- Menu Kendaraan -->
-                <a href="{{ route('motorcycles.index') }}" 
-                   class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.motors.*') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
+                <a href="{{ route('admin.motorcycles.index') }}" 
+                   class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.motorcycles.*') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
                     <i class="bi bi-scooter me-2"></i> Kendaraan
                 </a>
             </div>

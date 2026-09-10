@@ -46,6 +46,13 @@
                             </a>
                         </li>
 
+                        <li>
+                            <a class="dropdown-item rounded-3 py-2 px-3 small text-secondary fw-medium d-flex align-items-center gap-2" href="{{ route('logout') }}"
+                               onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                                <i class="bi bi-box-arrow-right fs-6"></i> Keluar
+                            </a>
+                        </li>
+
                         <!-- Hanya tampil jika role Admin -->
                         @if(Auth::user()->role === 'admin')
                             <li>

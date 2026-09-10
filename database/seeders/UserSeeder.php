@@ -24,19 +24,19 @@ class UserSeeder extends Seeder
             ]
         );
 
-        // // 2. Akun Customer (Sampel untuk Testing)
-        // User::updateOrCreate(
-        //     ['no_hp' => '089876543210'],
-        //     [
-        //         'name'     => 'Customer Sampel',
-        //         'no_hp'    => '089876543210',
-        //         'no_ktp'   => '3171019876540002',
-        //         'no_sim'   => '987654321098',
-        //         'email'    => 'customer@gmail.com',
-        //         'alamat'   => 'Jl. Testing No. 12',
-        //         'password' => 'customer123',
-        //         'role'     => 'customer',
-        //     ]
-        // );
+        // 2. Akun Customer (Sampel untuk Testing)
+        User::updateOrCreate(
+            ['no_hp' => '089876543210'],
+            [
+                'name'     => 'Customer Sampel',
+                'no_hp'    => '089876543210',
+                'no_ktp'   => '3171019876540002',
+                'no_sim'   => '987654321098',
+                'email'    => 'customer@gmail.com',
+                'alamat'   => 'Jl. Testing No. 12',
+                'password' => 'customer123',
+                'role'     => 'customer',
+            ]
+        );
     }
 }
