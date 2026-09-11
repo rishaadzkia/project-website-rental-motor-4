@@ -12,14 +12,30 @@
                 <a class="nav-link text-dark fw-medium small p-0" href="{{ route('home') }}">Home</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link text-muted small p-0" href="#">Pilih Kendaraan</a>
-            </li>
+    @auth
+        @if(auth()->user()->role === 'admin') {{-- Sesuaikan dengan nama kolom role di database kamu (misal: is_admin / role) --}}
+            <a class="nav-link text-muted small p-0" href="{{ route('admin.motorcycles.index') }}">Pilih Kendaraan</a>
+        @else
+            <a class="nav-link text-muted small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
+        @endif
+    @else
+        <a class="nav-link text-muted small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
+    @endauth
+</li>
             <li class="nav-item">
-                <a class="nav-link text-muted small p-0" href="#">Daftar Pesanan</a>
-            </li>
+    @auth
+        @if(auth()->user()->role === 'admin') {{-- Sesuaikan kolom role (misal: is_admin == 1 atau role === 'admin') --}}
+            <a class="nav-link text-muted small p-0" href="{{ route('admin.orders.index') }}">Daftar Pesanan</a>
+        @else
+            <a class="nav-link text-muted small p-0" href="{{ route('bookings.index') }}">Daftar Pesanan</a>
+        @endif
+    @else
+        <a class="nav-link text-muted small p-0" href="{{ route('login') }}">Daftar Pesanan</a>
+    @endauth
+</li>
         </ul>
 
-        <!-- Area Kanan (Bantuan & Auth) -->
+        <!-- Area Kanan (Bantuan & Auth) --> 
         <div class="d-flex align-items-center gap-3">
             <!-- Tombol WhatsApp Butuh Bantuan -->
             <a href="https://wa.me/6281234567890" target="_blank" class="btn btn-outline-light text-dark border shadow-sm rounded-2 btn-sm px-3 d-flex align-items-center gap-2 small">

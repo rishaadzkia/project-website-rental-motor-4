@@ -17,6 +17,9 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
+// Midtrans Webhook (WAJIB di luar auth & tanpa CSRF)
+Route::post('/midtrans/notification', [BookingController::class, 'notificationHandler'])->name('midtrans.notification');
+
 // Profile
 Route::middleware(['auth'])->group(function () {
     Route::put('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
@@ -43,83 +46,36 @@ Route::post('/logout', function () {
 // Auth Users
 Route::middleware('auth')->group(function () {
 
-    Route::get('/dashboard', [
-        UserDashboardController::class,
-        'index'
-    ])->name('dashboard');
+    Route::get('/dashboard', [UserDashboardController::class, 'index'])->name('dashboard');
 
-    Route::get(
-        '/motorcycles',
-        [UserMotorcycleController::class, 'index']
-    )->name('motorcycles.index');
+    Route::get('/motorcycles', [UserMotorcycleController::class, 'index'])->name('motorcycles.index');
+    Route::get('/motorcycles/{motorcycle}', [UserMotorcycleController::class, 'show'])->name('motorcycles.show');
 
-    Route::get(
-        '/motorcycles/{motorcycle}',
-        [UserMotorcycleController::class, 'show']
-    )->name('motorcycles.show');
+    Route::get('/motorcycles/{motorcycle}/booking', [BookingController::class, 'create'])->name('bookings.create');
+    Route::post('/motorcycles/{motorcycle}/booking', [BookingController::class, 'store'])->name('bookings.store');
 
-    Route::get(
-        '/motorcycles/{motorcycle}/booking',
-        [BookingController::class, 'create']
-    )->name('bookings.create');
+    Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+    Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
+    Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
 
-    Route::post(
-        '/motorcycles/{motorcycle}/booking',
-        [BookingController::class, 'store']
-    )->name('bookings.store');
+    // Route Tunggal Status Pembayaran
+    Route::get('/bookings/{booking}/status', [BookingController::class, 'status'])->name('bookings.status');
 
-    Route::get(
-        '/bookings',
-        [BookingController::class, 'index']
-    )->name('bookings.index');
-
-    Route::get(
-        '/bookings/{booking}',
-        [BookingController::class, 'show']
-    )->name('bookings.show');
-
-    Route::patch(
-        '/bookings/{booking}/cancel',
-        [BookingController::class, 'cancel']
-    )->name('bookings.cancel');
-    
+    Route::get('/orders', [BookingController::class, 'index'])->name('orders.index');
 
     // Khusus Admin
-    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () {
+    Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () { 
 
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
 
         // Resource Motorcycles (CRUD Admin)
         Route::resource('motorcycles', AdminMotorcycleController::class);
-        
-        Route::get('/dashboard', [
-            AdminDashboardController::class,
-            'index'
-        ])->name('dashboard');
 
-        Route::resource(
-            'motorcycles',
-            AdminMotorcycleController::class
-        );
+        // Management Bookings
+        Route::get('/bookings', [AdminBookingController::class, 'index'])->name('bookings.index');
+        Route::get('/bookings/{booking}', [AdminBookingController::class, 'show'])->name('bookings.show');
+        Route::put('/bookings/{booking}', [AdminBookingController::class, 'update'])->name('bookings.update');
 
-        Route::get(
-            '/bookings',
-            [AdminBookingController::class, 'index']
-        )->name('bookings.index');
-
-        Route::get(
-            '/bookings/{booking}',
-            [AdminBookingController::class, 'show']
-        )->name('bookings.show');
-
-        Route::patch(
-            '/bookings/{booking}',
-            [AdminBookingController::class, 'update']
-        )->name('bookings.update');
-
-        // Orders (sementara)
-        Route::get('/orders', function () {
-            return view('admin.orders.index');
-        })->name('orders.index');
+        Route::get('/orders', [AdminBookingController::class, 'index'])->name('orders.index');
     });
 });

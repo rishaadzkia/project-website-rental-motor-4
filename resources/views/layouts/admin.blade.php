@@ -35,10 +35,10 @@
                 </a>
 
                 {{-- Menu Tambah Kendaraan --}}
-                <a href="{{ route('admin.motorcycles.create') }}" 
+                {{-- <a href="{{ route('admin.motorcycles.create') }}" 
                    class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.motorcycles.create') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
                     <i class="bi bi-plus-circle me-2"></i> Tambah Kendaraan
-                </a>
+                </a> --}}
 
                 <!-- Menu Kendaraan -->
                 <a href="{{ route('admin.motorcycles.index') }}" 
