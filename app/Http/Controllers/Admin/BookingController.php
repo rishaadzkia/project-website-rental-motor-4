@@ -19,8 +19,9 @@ class BookingController extends Controller
             ->latest()
             ->paginate(15);
 
+        // Diubah ke 'admin.orders.index' agar sesuai dengan lokasi file blade kamu
         return view(
-            'admin.bookings.index',
+            'admin.orders.index',
             compact('bookings')
         );
     }
