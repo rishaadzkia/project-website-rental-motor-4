@@ -12,6 +12,7 @@ use App\Http\Controllers\User\MotorcycleController as UserMotorcycleController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
+
 // Landing Page
 Route::get('/', function () {
     return view('welcome');
@@ -57,6 +58,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+    
+
+Route::middleware(['auth'])->group(function () {
+    // ... route booking kamu yang lain
+    
+    // Tambahkan route ini:
+    Route::patch('/bookings/{booking}/pickup', [BookingController::class, 'updatePickup'])
+        ->name('bookings.update-pickup');
+});
 
     // Route Tunggal Status Pembayaran
     Route::get('/bookings/{booking}/status', [BookingController::class, 'status'])->name('bookings.status');

@@ -15,6 +15,9 @@ class Booking extends Model
         'total_days',
         'total_price',
         'status',
+        'pickup_method', // tambahkan ini
+        'pickup_address',
+        'delivery_fee',
     ];
 
     protected function casts(): array
