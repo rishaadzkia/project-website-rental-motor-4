@@ -21,13 +21,42 @@
                     Selamat, kamu berhasil booking motornya! Cek status transaksimu dan chat admin untuk konfirmasi pengambilan motor!
                 </p>
 
-                <div class="d-flex justify-content-center">
-                    <a href="https://wa.me/6288905604619?text=Halo%20Admin,%20saya%20ingin%20konfirmasi%20booking%20#{{ $booking->id }}" 
+                @php
+    $nomorAdmin = '6288905604619';
+    
+    // Konversi ke lowercase untuk mengantisipasi perbedaan kapitalisasi
+    $method = strtolower($booking->pickup_method ?? 'pool');
+
+    // Format keterangan lokasi berdasarkan pilihan user
+    $lokasiInfo = ($method === 'delivery') 
+        ? "Diantar ke Lokasi\n📍 *Alamat Pengantaran:* " . ($booking->pickup_address ?? 'Belum diisi')
+        : "Ambil Sendiri di Pool / Garasi";
+
+    $pesanWA = "Halo Admin, selamat pagi/siang 😊\n\n"
+             . "Saya mau konfirmasi booking motor yang baru saja saya selesaikan via web. Berikut rincian pemesanan dan pengambilannya ya kak:\n\n"
+             . "📌 *Detail Pemesanan:*\n"
+             . "• ID Booking: #" . $booking->id . "\n"
+             . "• Nama Pemesan: " . ($booking->user->name ?? '-') . "\n"
+             . "• Unit Motor: " . ($booking->motorcycle->name ?? '-') . "\n"
+             . "• Tanggal Sewa: " . \Carbon\Carbon::parse($booking->start_date)->translatedFormat('d F Y') . "\n"
+             . "• Pengambilan: " . $lokasiInfo . "\n\n"
+             . "Mohon dikonfirmasi ya kak, terima kasih banyak! 🙏";
+
+    $urlWA = "https://wa.me/" . $nomorAdmin . "?text=" . urlencode($pesanWA);
+@endphp
+
+<!-- Gunakan $urlWA di tag <a> tombol WhatsApp Anda -->
+<a href="{{ $urlWA }}" target="_blank" class="btn btn-primary">
+    Konfirmasi WhatsApp
+</a>
+
+                {{-- <div class="d-flex justify-content-center">
+                    <a href="https://wa.me/{{ $nomorAdmin }}?text={{ rawurlencode($pesanWA) }}" 
                        target="_blank" 
                        class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm">
                         Chat Admin
                     </a>
-                </div>
+                </div> --}}
 
             {{-- 2. TAMPILAN JIKA WAKTU HABIS / BATAL / GAGAL --}}
             @elseif (in_array($booking->status, ['cancelled', 'failed', 'expire']))

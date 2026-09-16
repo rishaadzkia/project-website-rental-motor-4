@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Motorcycle;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
+use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -24,66 +24,76 @@ class BookingController extends Controller
     }
 
     public function store(Request $request, Motorcycle $motorcycle): RedirectResponse
-    {
-        $validated = $request->validate([
-            'start_date' => [
-                'required',
-                'date',
-                'after_or_equal:today',
-            ],
-            'end_date' => [
-                'required',
-                'date',
-                'after_or_equal:start_date',
-            ],
+{
+    // Validasi input awal (pickup_method dibuat nullable)
+    $validated = $request->validate([
+        'start_date' => [ 
+            'required',
+            'date',
+            'after_or_equal:today',
+        ],
+        'end_date' => [
+            'required',
+            'date',
+            'after_or_equal:start_date',
+        ],
+        'pickup_method'  => ['nullable', 'in:pool,delivery'],
+        'pickup_address' => ['nullable', 'string'],
+        'delivery_fee'   => ['nullable', 'numeric'],
+    ]);
+
+    if ($motorcycle->status !== 'available') {
+        return back()->withErrors([
+            'motorcycle' => 'Motor ini sedang tidak tersedia.',
         ]);
-
-        if ($motorcycle->status !== 'available') {
-            return back()->withErrors([
-                'motorcycle' => 'Motor ini sedang tidak tersedia.',
-            ]);
-        }
-
-        $startDate = \Carbon\Carbon::parse($validated['start_date']);
-        $endDate = \Carbon\Carbon::parse($validated['end_date']);
-
-        $totalDays = $startDate->diffInDays($endDate) + 1;
-        $totalPrice = $totalDays * (float) $motorcycle->price_per_day;
-
-        $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
-            ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query
-                    ->whereBetween('start_date', [$startDate, $endDate])
-                    ->orWhereBetween('end_date', [$startDate, $endDate])
-                    ->orWhere(function ($query) use ($startDate, $endDate) {
-                        $query
-                            ->where('start_date', '<=', $startDate)
-                            ->where('end_date', '>=', $endDate);
-                    });
-            })
-            ->exists();
-
-        if ($hasConflict) {
-            return back()->withErrors([
-                'start_date' => 'Motor sudah dibooking pada tanggal tersebut.',
-            ]);
-        }
-
-        $booking = Booking::create([
-            'user_id' => Auth::id(),
-            'motorcycle_id' => $motorcycle->id,
-            'start_date' => $startDate,
-            'end_date' => $endDate,
-            'total_days' => $totalDays,
-            'total_price' => $totalPrice,
-            'status' => 'pending',
-        ]);
-
-        return redirect()
-            ->route('bookings.show', $booking)
-            ->with('success', 'Booking berhasil dibuat.');
     }
+
+    $startDate = \Carbon\Carbon::parse($validated['start_date']);
+    $endDate = \Carbon\Carbon::parse($validated['end_date']);
+
+    $totalDays = $startDate->diffInDays($endDate) + 1;
+    $totalPrice = $totalDays * (float) $motorcycle->price_per_day;
+
+    $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
+        ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
+        ->where(function ($query) use ($startDate, $endDate) {
+            $query
+                ->whereBetween('start_date', [$startDate, $endDate])
+                ->orWhereBetween('end_date', [$startDate, $endDate])
+                ->orWhere(function ($query) use ($startDate, $endDate) {
+                    $query
+                        ->where('start_date', '<=', $startDate)
+                        ->where('end_date', '>=', $endDate);
+                });
+        })
+        ->exists();
+
+    if ($hasConflict) {
+        return back()->withErrors([
+            'start_date' => 'Motor sudah dibooking pada tanggal tersebut.',
+        ]);
+    }
+
+    // Default ke 'pool' jika belum diisi dari form create
+    $pickupMethod = $request->input('pickup_method', 'pool');
+
+    $booking = Booking::create([
+        'user_id'        => Auth::id(),
+        'motorcycle_id'  => $motorcycle->id,
+        'start_date'     => $startDate,
+        'end_date'       => $endDate,
+        'total_days'     => $totalDays,
+        'total_price'    => $totalPrice,
+        'status'         => 'pending',
+        'pickup_method'  => $pickupMethod,
+        'pickup_address' => $pickupMethod === 'delivery' ? $request->pickup_address : null,
+        'delivery_fee'   => $pickupMethod === 'delivery' ? ($request->delivery_fee ?? 0) : 0,
+    ]);
+
+    return redirect()
+        ->route('bookings.show', $booking)
+        ->with('success', 'Booking berhasil dibuat.');
+}
 
     public function index(): View
     {
@@ -112,7 +122,9 @@ class BookingController extends Controller
                 ? 'https://app.midtrans.com/snap/v1/transactions' 
                 : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
-            $grossAmount = (int) round($booking->total_price);
+            // Hitung total harga termasuk biaya pengiriman (jika ada)
+            $totalAmount = $booking->total_price + ($booking->delivery_fee ?? 0);
+            $grossAmount = (int) round($totalAmount);
 
             $params = [
                 'transaction_details' => [
@@ -127,12 +139,22 @@ class BookingController extends Controller
                 'item_details' => [
                     [
                         'id' => 'MOTOR-' . $booking->motorcycle_id,
-                        'price' => $grossAmount,
+                        'price' => (int) round($booking->total_price),
                         'quantity' => 1,
                         'name' => substr('Sewa ' . ($booking->motorcycle->name ?? 'Motor'), 0, 50),
                     ]
                 ]
             ];
+
+            // Tambahkan biaya delivery ke rincian item Midtrans jika memilih pengantaran
+            if ($booking->pickup_method === 'delivery' && $booking->delivery_fee > 0) {
+                $params['item_details'][] = [
+                    'id' => 'DELIVERY-FEE',
+                    'price' => (int) round($booking->delivery_fee),
+                    'quantity' => 1,
+                    'name' => 'Biaya Pengantaran',
+                ];
+            }
 
             try {
                 $response = Http::withoutVerifying()
@@ -164,6 +186,9 @@ class BookingController extends Controller
     public function status(Booking $booking): View
     {
         abort_unless($booking->user_id === Auth::id(), 403);
+
+        // Pastikan relasi ter-load agar data user & motorcycle bisa dibaca di Blade
+        $booking->load(['motorcycle', 'user']);
 
         // Fallback update status lokal berdasarkan parameter URL dari JS
         if (request()->has('transaction_status')) {
@@ -217,7 +242,7 @@ class BookingController extends Controller
             return response()->json(['message' => 'Invalid signature'], 403);
         }
 
-        $orderParts = explode('-', $orderId);
+        $orderParts = explode('-', $orderId); 
         $bookingId = $orderParts[1] ?? null;
 
         $booking = Booking::find($bookingId);
@@ -243,5 +268,27 @@ class BookingController extends Controller
         }
 
         return response()->json(['message' => 'Notification processed successfully']);
+    }
+
+    public function updatePickup(Request $request, Booking $booking): RedirectResponse
+    {
+        $request->validate([
+            'pickup_method'  => 'required|in:pool,delivery',
+            'pickup_address' => 'required_if:pickup_method,delivery|nullable|string|min:10',
+            'delivery_fee'   => 'nullable|numeric',
+        ], [
+            'pickup_address.required_if' => 'Alamat pengantaran wajib diisi jika memilih metode Diantar ke Lokasi.',
+            'pickup_address.min'         => 'Alamat pengantaran minimal 10 karakter agar lokasi jelas.',
+        ]);
+
+        $isDelivery = $request->pickup_method === 'delivery';
+
+        $booking->update([
+            'pickup_method'  => $request->pickup_method,
+            'pickup_address' => $isDelivery ? $request->pickup_address : null,
+            'delivery_fee'   => $isDelivery ? ($request->delivery_fee ?? 0) : 0,
+        ]);
+
+        return redirect()->back()->with('success', 'Metode pengantaran berhasil diperbarui.');
     }
 }
