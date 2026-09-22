@@ -5,6 +5,8 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\Motorcycle;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Auth;
@@ -24,76 +26,91 @@ class BookingController extends Controller
     }
 
     public function store(Request $request, Motorcycle $motorcycle): RedirectResponse
-{
-    // Validasi input awal (pickup_method dibuat nullable)
-    $validated = $request->validate([
-        'start_date' => [ 
-            'required',
-            'date',
-            'after_or_equal:today',
-        ],
-        'end_date' => [
-            'required',
-            'date',
-            'after_or_equal:start_date',
-        ],
-        'pickup_method'  => ['nullable', 'in:pool,delivery'],
-        'pickup_address' => ['nullable', 'string'],
-        'delivery_fee'   => ['nullable', 'numeric'],
-    ]);
-
-    if ($motorcycle->status !== 'available') {
-        return back()->withErrors([
-            'motorcycle' => 'Motor ini sedang tidak tersedia.',
+    {
+        // 1. Validasi Input
+        $validated = $request->validate([
+            'start_date'     => ['required', 'date', 'after_or_equal:today'],
+            'start_time'     => ['required', 'date_format:H:i'],
+            'end_date'       => ['required', 'date', 'after_or_equal:start_date'],
+            'end_time'       => ['required', 'date_format:H:i'],
+            'pickup_method'  => ['nullable', 'in:pool,delivery'],
+            'pickup_address' => ['nullable', 'string', 'required_if:pickup_method,delivery'],
+            'delivery_fee'   => ['nullable', 'numeric'],
         ]);
-    }
 
-    $startDate = \Carbon\Carbon::parse($validated['start_date']);
-    $endDate = \Carbon\Carbon::parse($validated['end_date']);
+        // 2. Cek Status Ketersediaan Unit Motor
+        if ($motorcycle->status !== 'available') {
+            return back()->withErrors([
+                'motorcycle' => 'Motor ini sedang tidak tersedia untuk disewa.',
+            ])->withInput();
+        }
 
-    $totalDays = $startDate->diffInDays($endDate) + 1;
-    $totalPrice = $totalDays * (float) $motorcycle->price_per_day;
+        // Gabungkan tanggal dan jam dengan Timezone Asia/Jakarta secara eksplisit
+        $startDateTime = Carbon::createFromFormat(
+            'Y-m-d H:i', 
+            $validated['start_date'] . ' ' . $validated['start_time'], 
+            'Asia/Jakarta'
+        );
 
-    $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
-        ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
-        ->where(function ($query) use ($startDate, $endDate) {
-            $query
-                ->whereBetween('start_date', [$startDate, $endDate])
-                ->orWhereBetween('end_date', [$startDate, $endDate])
-                ->orWhere(function ($query) use ($startDate, $endDate) {
-                    $query
-                        ->where('start_date', '<=', $startDate)
-                        ->where('end_date', '>=', $endDate);
-                });
-        })
-        ->exists();
+        $endDateTime = Carbon::createFromFormat(
+            'Y-m-d H:i', 
+            $validated['end_date'] . ' ' . $validated['end_time'], 
+            'Asia/Jakarta'
+        );
 
-    if ($hasConflict) {
-        return back()->withErrors([
-            'start_date' => 'Motor sudah dibooking pada tanggal tersebut.',
+        if ($endDateTime->lte($startDateTime)) {
+            return back()->withErrors([
+                'end_date' => 'Waktu pengembalian harus lebih lambat dari waktu pengambilan.',
+            ])->withInput();
+        }
+
+        // 3. Hitung Total Hari Sewa
+        $diffInHours = $startDateTime->diffInHours($endDateTime);
+        $totalDays   = (int) ceil($diffInHours / 24);
+        $totalDays   = $totalDays > 0 ? $totalDays : 1;
+        $totalPrice  = $totalDays * (float) $motorcycle->price_per_day;
+
+        // 4. Cek Bentrok Jadwal Booking
+        $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
+            ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
+            ->where(function ($query) use ($startDateTime, $endDateTime) {
+                $query->whereBetween('start_date', [$startDateTime->toDateTimeString(), $endDateTime->toDateTimeString()])
+                    ->orWhereBetween('end_date', [$startDateTime->toDateTimeString(), $endDateTime->toDateTimeString()])
+                    ->orWhere(function ($q) use ($startDateTime, $endDateTime) {
+                        $q->where('start_date', '<=', $startDateTime->toDateTimeString())
+                          ->where('end_date', '>=', $endDateTime->toDateTimeString());
+                    });
+            })
+            ->exists();
+
+        if ($hasConflict) {
+            return back()->withErrors([
+                'start_date' => 'Motor sudah dibooking pada rentang tanggal & jam tersebut.',
+            ])->withInput();
+        }
+
+        // 5. Simpan Data Booking dengan Waktu Lengkap
+        $pickupMethod = $validated['pickup_method'] ?? 'pool';
+
+        $booking = Booking::create([
+            'user_id'        => Auth::id(),
+            'motorcycle_id'  => $motorcycle->id,
+            'start_date'     => $startDateTime->format('Y-m-d H:i:s'),
+            'end_date'       => $endDateTime->format('Y-m-d H:i:s'),
+            'pickup_time'    => $validated['start_time'],
+            'return_time'    => $validated['end_time'],
+            'total_days'     => $totalDays,
+            'total_price'    => $totalPrice,
+            'status'         => 'pending',
+            'pickup_method'  => $pickupMethod,
+            'pickup_address' => $pickupMethod === 'delivery' ? ($validated['pickup_address'] ?? null) : null,
+            'delivery_fee'   => $pickupMethod === 'delivery' ? ($validated['delivery_fee'] ?? 0) : 0,
         ]);
+
+        return redirect()
+            ->route('bookings.show', $booking)
+            ->with('success', 'Booking berhasil dibuat. Silakan selesaikan pembayaran.');
     }
-
-    // Default ke 'pool' jika belum diisi dari form create
-    $pickupMethod = $request->input('pickup_method', 'pool');
-
-    $booking = Booking::create([
-        'user_id'        => Auth::id(),
-        'motorcycle_id'  => $motorcycle->id,
-        'start_date'     => $startDate,
-        'end_date'       => $endDate,
-        'total_days'     => $totalDays,
-        'total_price'    => $totalPrice,
-        'status'         => 'pending',
-        'pickup_method'  => $pickupMethod,
-        'pickup_address' => $pickupMethod === 'delivery' ? $request->pickup_address : null,
-        'delivery_fee'   => $pickupMethod === 'delivery' ? ($request->delivery_fee ?? 0) : 0,
-    ]);
-
-    return redirect()
-        ->route('bookings.show', $booking)
-        ->with('success', 'Booking berhasil dibuat.');
-}
 
     public function index(): View
     {
@@ -114,70 +131,7 @@ class BookingController extends Controller
         $snapToken = $booking->snap_token;
 
         if ($booking->status === 'pending' && empty($snapToken)) {
-            
-            $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
-            $isProduction = filter_var(config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false)), FILTER_VALIDATE_BOOLEAN);
-
-            $endpoint = $isProduction 
-                ? 'https://app.midtrans.com/snap/v1/transactions' 
-                : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
-
-            // Hitung total harga termasuk biaya pengiriman (jika ada)
-            $totalAmount = $booking->total_price + ($booking->delivery_fee ?? 0);
-            $grossAmount = (int) round($totalAmount);
-
-            $params = [
-                'transaction_details' => [
-                    'order_id' => 'RENTAL-' . $booking->id . '-' . time(),
-                    'gross_amount' => $grossAmount,
-                ],
-                'customer_details' => [
-                    'first_name' => $booking->user->name ?? 'Pelanggan',
-                    'email' => $booking->user->email ?? 'customer@example.com',
-                    'phone' => $booking->user->no_hp ?? '08123456789',
-                ],
-                'item_details' => [
-                    [
-                        'id' => 'MOTOR-' . $booking->motorcycle_id,
-                        'price' => (int) round($booking->total_price),
-                        'quantity' => 1,
-                        'name' => substr('Sewa ' . ($booking->motorcycle->name ?? 'Motor'), 0, 50),
-                    ]
-                ]
-            ];
-
-            // Tambahkan biaya delivery ke rincian item Midtrans jika memilih pengantaran
-            if ($booking->pickup_method === 'delivery' && $booking->delivery_fee > 0) {
-                $params['item_details'][] = [
-                    'id' => 'DELIVERY-FEE',
-                    'price' => (int) round($booking->delivery_fee),
-                    'quantity' => 1,
-                    'name' => 'Biaya Pengantaran',
-                ];
-            }
-
-            try {
-                $response = Http::withoutVerifying()
-                    ->withHeaders([
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
-                        'Authorization' => 'Basic ' . base64_encode($serverKey . ':'),
-                    ])
-                    ->post($endpoint, $params);
-
-                if ($response->successful()) {
-                    $responseData = $response->json();
-                    $snapToken = $responseData['token'] ?? null;
-
-                    if ($snapToken) {
-                        $booking->update(['snap_token' => $snapToken]);
-                    }
-                } else {
-                    Log::error('Midtrans API Error Response: ' . $response->body());
-                }
-            } catch (\Exception $e) {
-                Log::error('Midtrans Snap Exception: ' . $e->getMessage());
-            }
+            $snapToken = $this->generateSnapToken($booking);
         }
 
         return view('user.bookings.show', compact('booking', 'snapToken'));
@@ -187,20 +141,118 @@ class BookingController extends Controller
     {
         abort_unless($booking->user_id === Auth::id(), 403);
 
-        // Pastikan relasi ter-load agar data user & motorcycle bisa dibaca di Blade
         $booking->load(['motorcycle', 'user']);
 
-        // Fallback update status lokal berdasarkan parameter URL dari JS
-        if (request()->has('transaction_status')) {
-            $trxStatus = request('transaction_status');
-            if (in_array($trxStatus, ['capture', 'settlement'])) {
-                $booking->update(['status' => 'confirmed']);
-            } elseif (in_array($trxStatus, ['deny', 'expire', 'cancel'])) {
-                $booking->update(['status' => 'cancelled']);
+        $orderId = request('order_id');
+
+        // Jika ada order_id, cek detail pembayaran langsung ke API Midtrans
+        if ($orderId) {
+            $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
+            $isProduction = filter_var(config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false)), FILTER_VALIDATE_BOOLEAN);
+
+            $endpoint = $isProduction 
+                ? "https://api.midtrans.com/v2/{$orderId}/status"
+                : "https://api.sandbox.midtrans.com/v2/{$orderId}/status";
+
+            try {
+                $response = Http::withoutVerifying()
+                    ->withHeaders([
+                        'Accept'        => 'application/json',
+                        'Content-Type'  => 'application/json',
+                        'Authorization' => 'Basic ' . base64_encode($serverKey . ':'),
+                    ])
+                    ->get($endpoint);
+
+                if ($response->successful()) {
+                    $trxData = $response->json();
+                    $realStatus = $trxData['transaction_status'] ?? '';
+                    $realPaymentType = $trxData['payment_type'] ?? null;
+
+                    // Format metode bayar spesifik dari respons API Midtrans
+                    $paymentMethod = $this->formatPaymentMethod($realPaymentType, $trxData);
+
+                    if (in_array($realStatus, ['capture', 'settlement'])) {
+                        $booking->update([
+                            'status'         => 'confirmed',
+                            'payment_method' => $paymentMethod,
+                            'paid_at'        => $booking->paid_at ?? Carbon::now('Asia/Jakarta'),
+                        ]);
+                    } elseif (in_array($realStatus, ['deny', 'expire', 'cancel'])) {
+                        $booking->update([
+                            'status'         => 'cancelled',
+                            'payment_method' => $paymentMethod,
+                        ]);
+                    } elseif ($realStatus === 'pending') {
+                        $booking->update([
+                            'status'         => 'pending',
+                            'payment_method' => $paymentMethod,
+                        ]);
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::error('Check Midtrans Status Error: ' . $e->getMessage());
             }
         }
 
         return view('user.bookings.status', compact('booking'));
+    }
+
+    public function notificationHandler(Request $request): JsonResponse
+    {
+        $payload = $request->all();
+        $orderId = $payload['order_id'] ?? null;
+        $transactionStatus = $payload['transaction_status'] ?? null;
+        $fraudStatus = $payload['fraud_status'] ?? null;
+        $paymentType = $payload['payment_type'] ?? null;
+
+        if (!$orderId) {
+            return response()->json(['message' => 'Invalid order ID'], 400);
+        }
+
+        // Ekstrak ID Booking (Format Order ID: "RENTAL-{id}-{timestamp}")
+        $parts = explode('-', $orderId);
+        $bookingId = $parts[1] ?? null;
+
+        $booking = Booking::find($bookingId);
+        if (!$booking) {
+            return response()->json(['message' => 'Booking not found'], 404);
+        }
+
+        $paymentMethod = $this->formatPaymentMethod($paymentType, $payload);
+
+        // Update Database berdasarkan status transaksi
+        if ($transactionStatus == 'capture') {
+            if ($fraudStatus == 'challenge') {
+                $booking->update([
+                    'status'         => 'pending',
+                    'payment_method' => $paymentMethod,
+                ]);
+            } else if ($fraudStatus == 'accept') {
+                $booking->update([
+                    'status'         => 'confirmed',
+                    'payment_method' => $paymentMethod,
+                    'paid_at'        => $booking->paid_at ?? Carbon::now('Asia/Jakarta'),
+                ]);
+            }
+        } else if ($transactionStatus == 'settlement') {
+            $booking->update([
+                'status'         => 'confirmed',
+                'payment_method' => $paymentMethod,
+                'paid_at'        => $booking->paid_at ?? Carbon::now('Asia/Jakarta'),
+            ]);
+        } else if (in_array($transactionStatus, ['cancel', 'deny', 'expire'])) {
+            $booking->update([
+                'status'         => 'cancelled',
+                'payment_method' => $paymentMethod,
+            ]);
+        } else if ($transactionStatus == 'pending') {
+            $booking->update([
+                'status'         => 'pending',
+                'payment_method' => $paymentMethod,
+            ]);
+        }
+
+        return response()->json(['message' => 'Notification processed successfully']);
     }
 
     public function cancel(Booking $booking): RedirectResponse
@@ -222,56 +274,10 @@ class BookingController extends Controller
             ->with('success', 'Booking berhasil dibatalkan.');
     }
 
-    public function notificationHandler(Request $request)
+    public function updatePickup(Request $request, Booking $booking): JsonResponse|RedirectResponse
     {
-        $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
-        
-        $payload = $request->all();
-        
-        $orderId = $payload['order_id'] ?? null;
-        $statusCode = $payload['status_code'] ?? null;
-        $grossAmount = $payload['gross_amount'] ?? null;
-        $signatureKey = $payload['signature_key'] ?? null;
-        $transactionStatus = $payload['transaction_status'] ?? null;
-        $type = $payload['payment_type'] ?? null;
-        $fraudStatus = $payload['fraud_status'] ?? null;
+        abort_unless($booking->user_id === Auth::id(), 403);
 
-        $validSignatureKey = hash("sha512", $orderId . $statusCode . $grossAmount . $serverKey);
-
-        if ($signatureKey !== $validSignatureKey) {
-            return response()->json(['message' => 'Invalid signature'], 403);
-        }
-
-        $orderParts = explode('-', $orderId); 
-        $bookingId = $orderParts[1] ?? null;
-
-        $booking = Booking::find($bookingId);
-
-        if (!$booking) {
-            return response()->json(['message' => 'Booking not found'], 404);
-        }
-
-        if ($transactionStatus == 'capture') {
-            if ($type == 'credit_card') {
-                if ($fraudStatus == 'challenge') {
-                    $booking->update(['status' => 'pending']);
-                } else {
-                    $booking->update(['status' => 'confirmed']);
-                }
-            }
-        } else if ($transactionStatus == 'settlement') {
-            $booking->update(['status' => 'confirmed']);
-        } else if ($transactionStatus == 'pending') {
-            $booking->update(['status' => 'pending']);
-        } else if (in_array($transactionStatus, ['deny', 'expire', 'cancel'])) {
-            $booking->update(['status' => 'cancelled']);
-        }
-
-        return response()->json(['message' => 'Notification processed successfully']);
-    }
-
-    public function updatePickup(Request $request, Booking $booking): RedirectResponse
-    {
         $request->validate([
             'pickup_method'  => 'required|in:pool,delivery',
             'pickup_address' => 'required_if:pickup_method,delivery|nullable|string|min:10',
@@ -287,8 +293,131 @@ class BookingController extends Controller
             'pickup_method'  => $request->pickup_method,
             'pickup_address' => $isDelivery ? $request->pickup_address : null,
             'delivery_fee'   => $isDelivery ? ($request->delivery_fee ?? 0) : 0,
+            'snap_token'     => null, 
         ]);
 
+        $newSnapToken = $this->generateSnapToken($booking);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success'    => true,
+                'snap_token' => $newSnapToken,
+                'message'    => 'Detail pengantaran berhasil diperbarui.'
+            ]);
+        }
+
         return redirect()->back()->with('success', 'Metode pengantaran berhasil diperbarui.');
+    }
+
+    private function generateSnapToken(Booking $booking): ?string
+    {
+        $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
+        $isProduction = filter_var(config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false)), FILTER_VALIDATE_BOOLEAN);
+
+        $endpoint = $isProduction 
+            ? 'https://app.midtrans.com/snap/v1/transactions' 
+            : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
+
+        $deliveryFee = $booking->pickup_method === 'delivery' ? (float) ($booking->delivery_fee ?? 0) : 0;
+        $grossAmount = (int) round($booking->total_price + $deliveryFee);
+
+        $itemDetails = [
+            [
+                'id'       => 'MOTOR-' . $booking->motorcycle_id,
+                'price'    => (int) round($booking->total_price),
+                'quantity' => 1,
+                'name'     => substr('Sewa ' . ($booking->motorcycle->name ?? 'Motor'), 0, 50),
+            ]
+        ];
+
+        if ($booking->pickup_method === 'delivery' && $deliveryFee > 0) {
+            $itemDetails[] = [
+                'id'       => 'DELIVERY-FEE',
+                'price'    => (int) round($deliveryFee),
+                'quantity' => 1,
+                'name'     => 'Biaya Pengantaran',
+            ];
+        }
+
+        $params = [
+            'transaction_details' => [
+                'order_id'     => 'RENTAL-' . $booking->id . '-' . time(),
+                'gross_amount' => $grossAmount,
+            ],
+            'customer_details' => [
+                'first_name' => $booking->user->name ?? 'Pelanggan',
+                'email'      => $booking->user->email ?? 'customer@example.com',
+                'phone'      => $booking->user->no_hp ?? '08123456789',
+            ],
+            'item_details' => $itemDetails
+        ];
+
+        try {
+            $response = Http::withoutVerifying()
+                ->withHeaders([
+                    'Accept'        => 'application/json',
+                    'Content-Type'  => 'application/json',
+                    'Authorization' => 'Basic ' . base64_encode($serverKey . ':'),
+                ])
+                ->post($endpoint, $params);
+
+            if ($response->successful()) {
+                $responseData = $response->json();
+                $snapToken = $responseData['token'] ?? null;
+
+                if ($snapToken) {
+                    $booking->update(['snap_token' => $snapToken]);
+                    return $snapToken;
+                }
+            } else {
+                Log::error('Midtrans API Error Response: ' . $response->body());
+            }
+        } catch (\Exception $e) {
+            Log::error('Midtrans Snap Exception: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    /**
+     * Helper privat untuk mengekstrak dan merapikan nama metode pembayaran Midtrans
+     */
+    private function formatPaymentMethod(?string $paymentType, array $payloadData = []): string
+    {
+        if (empty($paymentType)) {
+            return 'PAYMENT GATEWAY';
+        }
+
+        $type = strtolower($paymentType);
+
+        if ($type === 'bank_transfer') {
+            // Cek struktur array dari Webhook/SDK atau dari API response
+            $bank = null;
+
+            if (isset($payloadData['va_numbers'][0]['bank'])) {
+                $bank = $payloadData['va_numbers'][0]['bank'];
+            } elseif (isset($payloadData['va_numbers'][0]->bank)) {
+                $bank = $payloadData['va_numbers'][0]->bank;
+            }
+
+            if ($bank) {
+                return 'VA ' . strtoupper($bank);
+            } elseif (!empty($payloadData['permata_va_number'])) {
+                return 'VA PERMATA';
+            }
+
+            return 'BANK TRANSFER';
+        } elseif ($type === 'echannel') {
+            return 'MANDIRI BILL';
+        } elseif ($type === 'cstore') {
+            $store = $payloadData['store'] ?? '';
+            return 'RETAIL ' . strtoupper($store);
+        } elseif ($type === 'credit_card') {
+            return 'CREDIT CARD';
+        } elseif (in_array($type, ['gopay', 'qris', 'shopeepay'])) {
+            return strtoupper($type);
+        }
+
+        return strtoupper($paymentType);
     }
 }
