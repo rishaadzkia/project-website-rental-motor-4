@@ -12,13 +12,12 @@ use App\Http\Controllers\User\MotorcycleController as UserMotorcycleController;
 use App\Http\Controllers\User\BookingController;
 use App\Http\Controllers\Admin\BookingController as AdminBookingController;
 
-
 // Landing Page
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-// Midtrans Webhook (WAJIB di luar auth & tanpa CSRF)
+// Midtrans Webhook (WAJIB PUBLIK, TANPA AUTH & CSRF)
 Route::post('/midtrans/notification', [BookingController::class, 'notificationHandler'])->name('midtrans.notification');
 
 // Profile
@@ -58,20 +57,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
     Route::get('/bookings/{booking}', [BookingController::class, 'show'])->name('bookings.show');
     Route::patch('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
-    
+    Route::patch('/bookings/{booking}/pickup', [BookingController::class, 'updatePickup'])->name('bookings.update-pickup');
 
-Route::middleware(['auth'])->group(function () {
-    // ... route booking kamu yang lain
-    
-    // Tambahkan route ini:
-    Route::patch('/bookings/{booking}/pickup', [BookingController::class, 'updatePickup'])
-        ->name('bookings.update-pickup');
-});
-
-    // Route Tunggal Status Pembayaran
+    // Route Status Pembayaran
     Route::get('/bookings/{booking}/status', [BookingController::class, 'status'])->name('bookings.status');
 
-    Route::get('/orders', [BookingController::class, 'index'])->name('orders.index');
+    // Route::get('/orders', [BookingController::class, 'index'])->name('orders.index');
 
     // Khusus Admin
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () { 
@@ -86,6 +77,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/bookings/{booking}', [AdminBookingController::class, 'show'])->name('bookings.show');
         Route::put('/bookings/{booking}', [AdminBookingController::class, 'update'])->name('bookings.update');
 
-        Route::get('/orders', [AdminBookingController::class, 'index'])->name('orders.index');
+        // Route Cetak Dokumen Admin
+        Route::get('/bookings/{booking}/print-invoice', [AdminBookingController::class, 'printInvoice'])->name('bookings.print-invoice');
+        Route::get('/bookings/{booking}/print-surat-jalan', [AdminBookingController::class, 'printSuratJalan'])->name('bookings.print-surat-jalan');
+
+        // Route::get('/orders', [AdminBookingController::class, 'index'])->name('orders.index');
     });
 });

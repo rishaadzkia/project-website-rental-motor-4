@@ -29,8 +29,8 @@
                 </a>
 
                 <!-- Menu Daftar Pesanan -->
-                <a href="{{ route('admin.orders.index') }}" 
-                   class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.orders.*') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
+                <a href="{{ route('admin.bookings.index') }}" 
+                   class="nav-link text-start rounded-3 py-2 px-3 {{ request()->routeIs('admin.bookings.*') ? 'active bg-primary fw-semibold' : 'text-secondary' }}">
                     <i class="bi bi-bag me-2"></i> Daftar Pesanan
                 </a>
 

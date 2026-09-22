@@ -54,10 +54,8 @@
                     <h5 class="fw-bold text-dark mb-3">Metode Pengambilan Motor</h5>
 
                     @if ($booking->status === 'pending')
-                        {{-- Form jika masih pending --}}
-                        <form id="pickup-form" action="{{ route('bookings.update-pickup', $booking) }}" method="POST">
+                        <form id="pickup-form">
                             @csrf
-                            @method('PATCH')
                             
                             <div class="mb-3">
                                 <div class="form-check mb-3">
@@ -80,39 +78,27 @@
                                 </div>
                             </div>
 
-                            <!-- Input Alamat & Pilih Wilayah (Tampil jika memilih 'Diantar ke Lokasi') -->
                             <div class="mb-3 {{ ($booking->pickup_method ?? '') === 'delivery' ? '' : 'd-none' }}" id="address-container">
                                 <div class="mb-3">
                                     <label class="form-label small text-muted fw-bold">Pilih Wilayah Pengantaran (Khusus Jakarta)</label>
                                     <select name="delivery_fee" id="delivery_fee" class="form-select rounded-3" onchange="updateTotalPrice()">
-                                        <option value="20000" {{ ($booking->delivery_fee ?? 20000) == 20000 ? 'selected' : '' }}>Jakarta Timur (Rp 20.000)</option>
-                                        <option value="30000" {{ ($booking->delivery_fee ?? 0) == 30000 ? 'selected' : '' }}>Jakarta Pusat (Rp 30.000)</option>
-                                        <option value="30000" {{ ($booking->delivery_fee ?? 0) == 30000 ? 'selected' : '' }}>Jakarta Selatan (Rp 30.000)</option>
-                                        <option value="40000" {{ ($booking->delivery_fee ?? 0) == 40000 ? 'selected' : '' }}>Jakarta Utara (Rp 40.000)</option>
-                                        <option value="40000" {{ ($booking->delivery_fee ?? 0) == 40000 ? 'selected' : '' }}>Jakarta Barat (Rp 40.000)</option>
+                                        <option value="20000" {{ (string)($booking->delivery_fee ?? 20000) === '20000' ? 'selected' : '' }}>Jakarta Timur (Rp 20.000)</option>
+                                        <option value="30000" {{ (string)($booking->delivery_fee ?? 0) === '30000' ? 'selected' : '' }}>Jakarta Pusat / Selatan (Rp 30.000)</option>
+                                        <option value="40000" {{ (string)($booking->delivery_fee ?? 0) === '40000' ? 'selected' : '' }}>Jakarta Utara / Barat (Rp 40.000)</option>
                                     </select>
                                 </div>
 
                                 <div>
                                     <label class="form-label small text-muted fw-bold">Detail Alamat / Nama Hotel / Patokan</label>
                                     <textarea name="pickup_address" id="pickup_address" 
-                                              class="form-control rounded-3 @error('pickup_address') is-invalid @enderror" 
+                                              class="form-control rounded-3" 
                                               rows="2" 
                                               placeholder="Contoh: Jl. Pemuda No. 10, Rawamangun (Lobby Hotel X)">{{ old('pickup_address', $booking->pickup_address ?? '') }}</textarea>
-                                    
-                                    <!-- Pesan error validasi dari JavaScript / Backend -->
-                                    <div id="address-error" class="invalid-feedback d-none">
-                                        Alamat pengantaran wajib diisi jika Anda memilih metode 'Diantar ke Lokasi'.
-                                    </div>
-                                    @error('pickup_address')
-                                        <div class="text-danger small mt-1">{{ $message }}</div>
-                                    @enderror
                                 </div>
                             </div>
                         </form>
 
                     @else
-                        {{-- Tampilan Read-Only jika sudah dibayar/selesai --}}
                         <div class="fs-6">
                             <p class="mb-1 text-muted">Metode:</p>
                             <span class="badge bg-primary-subtle text-primary fw-semibold px-3 py-2 rounded-pill">
@@ -142,11 +128,6 @@
                         <span class="text-muted small">
                             Durasi sewa : <strong>{{ $booking->total_days }} hari</strong>
                         </span>
-                        @if ($booking->status === 'pending')
-                            <a href="#" class="text-primary text-decoration-none small fw-semibold">
-                                <i class="bi bi-pencil me-1"></i>Edit
-                            </a>
-                        @endif
                     </div>
 
                     <div class="row g-2 mb-4">
@@ -190,12 +171,12 @@
                     <h6 class="fw-bold text-dark mb-3">Ringkasan Transaksi</h6>
 
                     @php
-                        // Menentukan harga per hari dari objek motor atau kalkulasi
-                        $dailyPrice = $booking->motorcycle->price_per_day ?? ($booking->total_days > 0 ? $booking->total_price / $booking->total_days : 0);
-                        $subtotalMotor = $dailyPrice * $booking->total_days;
+                        $subtotalMotor = $booking->total_price;
+                        $deliveryFee = $booking->pickup_method === 'delivery' ? ($booking->delivery_fee ?? 0) : 0;
+                        $grandTotal = $subtotalMotor + $deliveryFee;
+                        $dailyPrice = $booking->motorcycle->price_per_day ?? ($booking->total_days > 0 ? $subtotalMotor / $booking->total_days : 0);
                     @endphp
 
-                    <!-- 1. Harga Motor per Hari x Hari -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted small">
                             Sewa Motor 
@@ -208,15 +189,13 @@
                         </span>
                     </div>
 
-                    <!-- 2. Biaya Pengantaran / Delivery Fee -->
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="text-muted small">Biaya Pengantaran</span>
                         <span class="fw-medium text-dark small" id="display-delivery-fee-text">
-                            Gratis
+                            {{ $deliveryFee > 0 ? 'Rp ' . number_format($deliveryFee, 0, ',', '.') : 'Gratis' }}
                         </span>
                     </div>
 
-                    <!-- 3. Diskon -->
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted small">Diskon</span>
                         <span class="text-muted small">-</span>
@@ -224,15 +203,13 @@
 
                     <hr class="text-muted opacity-25 my-2">
 
-                    <!-- Total Harga -->
                     <div class="d-flex justify-content-between align-items-center pt-2">
                         <span class="fw-bold text-dark fs-6">Total Harga</span>
                         <strong class="text-primary fs-5" id="display-grand-total">
-                            Rp {{ number_format($subtotalMotor, 0, ',', '.') }}
+                            Rp {{ number_format($grandTotal, 0, ',', '.') }}
                         </strong>
                     </div>
 
-                    <!-- Tombol Aksi / Bayar -->
                     <div class="mt-4">
                         @if ($booking->status === 'pending')
                             <form action="{{ route('bookings.cancel', $booking) }}" method="POST" class="mb-2" onsubmit="return confirm('Yakin ingin membatalkan pesanan?')">
@@ -280,7 +257,8 @@
 <script src="{{ $snapUrl }}" data-client-key="{{ $clientKey }}"></script>
 
 <script type="text/javascript">
-    const basePrice = {{ $subtotalMotor }}; // Subtotal sewa motor murni
+    const basePrice = {{ $subtotalMotor }};
+    let currentSnapToken = "{{ $snapToken ?? '' }}";
 
     function toggleAddressInput() {
         const deliveryRadio = document.getElementById('pickup_delivery');
@@ -291,19 +269,8 @@
                 addressContainer.classList.remove('d-none');
             } else {
                 addressContainer.classList.add('d-none');
-                
-                // Reset validasi error jika pindah ke opsi 'Pool'
-                const addressInput = document.getElementById('pickup_address');
-                const errorElement = document.getElementById('address-error');
-                if (addressInput) addressInput.classList.remove('is-invalid');
-                if (errorElement) {
-                    errorElement.classList.add('d-none');
-                    errorElement.classList.remove('d-block');
-                }
             }
         }
-
-        // Perbarui total harga saat metode berubah
         updateTotalPrice();
     }
 
@@ -320,145 +287,101 @@
 
         const grandTotal = basePrice + deliveryFee;
 
-        // Format angka ke Rupiah
         const formatRupiah = (number) => {
-            return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(number);
         };
 
-        // Update UI Teks Ongkir
-        const textOngkir = isDelivery ? formatRupiah(deliveryFee) : 'Gratis';
         const displayFeeEl = document.getElementById('display-delivery-fee-text');
         if (displayFeeEl) {
-            displayFeeEl.innerText = textOngkir;
-            if (isDelivery) {
-                displayFeeEl.classList.add('text-primary', 'fw-bold');
-            } else {
-                displayFeeEl.classList.remove('text-primary', 'fw-bold');
-            }
+            displayFeeEl.innerText = isDelivery ? formatRupiah(deliveryFee) : 'Gratis';
         }
 
-        // Update UI Grand Total
         const displayTotalEl = document.getElementById('display-grand-total');
         if (displayTotalEl) {
             displayTotalEl.innerText = formatRupiah(grandTotal);
         }
     }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        // Hitung awal total harga saat pertama kali halaman dimuat
-        updateTotalPrice();
+    document.addEventListener('DOMContentLoaded', function () {
+        // Inisialisasi tampilan harga & alamat saat halaman dimuat
+        toggleAddressInput();
 
         const payButton = document.getElementById('pay-button');
-        const addressInput = document.getElementById('pickup_address');
-        const errorElement = document.getElementById('address-error');
-
-        // Hilangkan error secara otomatis saat user mulai mengetik di textarea alamat
-        if (addressInput) {
-            addressInput.addEventListener('input', function () {
-                if (this.value.trim() !== "") {
-                    this.classList.remove('is-invalid');
-                    if (errorElement) {
-                        errorElement.classList.add('d-none');
-                        errorElement.classList.remove('d-block');
-                    }
-                }
-            });
-        }
-
+        
         if (payButton) {
-            payButton.addEventListener('click', async function (e) {
-                e.preventDefault();
+            payButton.addEventListener('click', async function () {
+                const isDelivery = document.getElementById('pickup_delivery')?.checked;
+                const pickupAddress = document.getElementById('pickup_address')?.value;
+                const deliveryFee = document.getElementById('delivery_fee')?.value;
 
-                const deliveryRadio = document.getElementById('pickup_delivery');
-                const isDelivery = deliveryRadio ? deliveryRadio.checked : false;
-                const deliveryFeeElement = document.getElementById('delivery_fee');
-
-                // --- 1. VALIDASI ALAMAT PENGANTARAN ---
-                if (isDelivery) {
-                    const addressValue = addressInput ? addressInput.value.trim() : '';
-
-                    if (addressValue === "") {
-                        if (addressInput) {
-                            addressInput.classList.add('is-invalid');
-                            addressInput.focus();
-                        }
-                        if (errorElement) {
-                            errorElement.classList.remove('d-none');
-                            errorElement.classList.add('d-block');
-                        }
-                        return; // Hentikan proses jika alamat kosong
-                    }
+                if (isDelivery && (!pickupAddress || pickupAddress.trim().length < 10)) {
+                    alert('Silakan isi detail alamat pengantaran minimal 10 karakter.');
+                    document.getElementById('pickup_address')?.focus();
+                    return;
                 }
 
-                // Ubah tampilan tombol saat memproses simpan
-                const originalText = payButton.innerHTML;
                 payButton.disabled = true;
-                payButton.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status"></span> Menyimpan data...`;
+                payButton.innerText = 'Memproses...';
 
-                // --- 2. SIMPAN PILIHAN PENGAMBILAN KE SERVER SEBELUM BAYAR ---
                 try {
-                    const response = await fetch("{{ route('bookings.update-pickup', $booking) }}", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                            "Accept": "application/json"
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('_method', 'PATCH');
+                    formData.append('pickup_method', isDelivery ? 'delivery' : 'pool');
+                    formData.append('pickup_address', isDelivery ? pickupAddress : '');
+                    formData.append('delivery_fee', isDelivery ? deliveryFee : 0);
+
+                    const updateResponse = await fetch("{{ route('bookings.update-pickup', $booking) }}", {
+                        method: 'POST',
+                        headers: { 
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
-                        body: JSON.stringify({
-                            _method: "PATCH",
-                            pickup_method: isDelivery ? 'delivery' : 'pool',
-                            pickup_address: isDelivery ? addressInput.value.trim() : null,
-                            delivery_fee: isDelivery ? (deliveryFeeElement ? deliveryFeeElement.value : 0) : 0
-                        })
+                        body: formData
                     });
 
-                    if (!response.ok) {
-                        throw new Error("Gagal menyimpan data lokasi pengambilan.");
+                    const result = await updateResponse.json();
+
+                    if (!updateResponse.ok || !result.success) {
+                        throw new Error(result.message || 'Gagal memperbarui metode pengantaran.');
                     }
-                } catch (err) {
-                    alert("Terjadi kesalahan saat menyimpan pilihan pengambilan: " + err.message);
-                    payButton.disabled = false;
-                    payButton.innerHTML = originalText;
-                    return;
-                }
 
-                // --- 3. JALANKAN MIDTRANS SNAP ---
-                const snapToken = @json($snapToken ?? null);
-
-                if (!snapToken || snapToken === "") {
-                    alert("Gagal Membuka Pembayaran!\n\nSnap Token tidak ditemukan di database.");
-                    payButton.disabled = false;
-                    payButton.innerHTML = originalText;
-                    return;
-                }
-
-                if (typeof window.snap === 'undefined') {
-                    alert("Gagal Memuat Midtrans SDK!\n\nScript snap.js gagal diunduh. Cek koneksi internet.");
-                    payButton.disabled = false;
-                    payButton.innerHTML = originalText;
-                    return;
-                }
-
-                payButton.disabled = false;
-                payButton.innerHTML = originalText;
-
-                window.snap.pay(snapToken, {
-                    onSuccess: function (result) {
-                        window.location.href = "{{ route('bookings.status', $booking) }}?transaction_status=settlement";
-                    },
-                    onPending: function (result) {
-                        window.location.href = "{{ route('bookings.status', $booking) }}?transaction_status=pending";
-                    },
-                    onError: function (result) {
-                        window.location.href = "{{ route('bookings.status', $booking) }}?transaction_status=deny";
-                    },
-                    onClose: function () {
-                        window.location.href = "{{ route('bookings.status', $booking) }}";
+                    // Perbarui token lokal jika Backend menerbitkan token baru
+                    if (result.snap_token) {
+                        currentSnapToken = result.snap_token;
                     }
-                });
+
+                    if (currentSnapToken) {
+                        snap.pay(currentSnapToken, {
+                            onSuccess: function(result) { 
+                                window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '') + "&transaction_status=" + (result.transaction_status || 'settlement'); 
+                            },
+                            onPending: function(result) { 
+                                alert("Pesanan kamu menunggu pembayaran. Silakan selesaikan pembayaran sesuai petunjuk.");
+                                payButton.disabled = false;
+                                payButton.innerText = 'Bayar Sekarang';
+                            },
+                            onError: function(result) { 
+                                alert("Pembayaran gagal atau dibatalkan."); 
+                                payButton.disabled = false;
+                                payButton.innerText = 'Bayar Sekarang';
+                            },
+                            onClose: function() { 
+                                payButton.disabled = false;
+                                payButton.innerText = 'Bayar Sekarang';
+                            }
+                        });
+                    } else {
+                        window.location.reload();
+                    }
+
+                } catch (error) {
+                    alert(error.message || 'Terjadi kesalahan sistem.');
+                    payButton.disabled = false;
+                    payButton.innerText = 'Bayar Sekarang';
+                }
             });
         }
     });
 </script>
-
 @endsection

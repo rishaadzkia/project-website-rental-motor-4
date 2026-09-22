@@ -25,7 +25,7 @@
             <li class="nav-item">
     @auth
         @if(auth()->user()->role === 'admin') {{-- Sesuaikan kolom role (misal: is_admin == 1 atau role === 'admin') --}}
-            <a class="nav-link text-muted small p-0" href="{{ route('admin.orders.index') }}">Daftar Pesanan</a>
+            <a class="nav-link text-muted small p-0" href="{{ route('admin.bookings.index') }}">Daftar Pesanan</a>
         @else
             <a class="nav-link text-muted small p-0" href="{{ route('bookings.index') }}">Daftar Pesanan</a>
         @endif
