@@ -143,10 +143,21 @@ class BookingController extends Controller
 
         $booking->load(['motorcycle', 'user']);
 
+        // Pengecekan Otomatis Batas Waktu 24 Jam untuk Status Pending
+        if ($booking->status === 'pending') {
+            $createdAt = Carbon::parse($booking->created_at);
+            
+            if ($createdAt->addHours(24)->isPast()) {
+                $booking->update([
+                    'status' => 'cancelled',
+                ]);
+            }
+        }
+
         $orderId = request('order_id');
 
-        // Jika ada order_id, cek detail pembayaran langsung ke API Midtrans
-        if ($orderId) {
+        // Jika ada parameter order_id dari callback Midtrans, verifikasi status langsung
+        if ($orderId && $booking->status === 'pending') {
             $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
             $isProduction = filter_var(config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false)), FILTER_VALIDATE_BOOLEAN);
 
@@ -168,7 +179,6 @@ class BookingController extends Controller
                     $realStatus = $trxData['transaction_status'] ?? '';
                     $realPaymentType = $trxData['payment_type'] ?? null;
 
-                    // Format metode bayar spesifik dari respons API Midtrans
                     $paymentMethod = $this->formatPaymentMethod($realPaymentType, $trxData);
 
                     if (in_array($realStatus, ['capture', 'settlement'])) {
@@ -194,7 +204,13 @@ class BookingController extends Controller
             }
         }
 
-        return view('user.bookings.status', compact('booking'));
+        // Siapkan snap_token jika status masih pending untuk memicu tombol "Bayar Sekarang"
+        $snapToken = $booking->snap_token;
+        if ($booking->status === 'pending' && empty($snapToken)) {
+            $snapToken = $this->generateSnapToken($booking);
+        }
+
+        return view('user.bookings.status', compact('booking', 'snapToken'));
     }
 
     public function notificationHandler(Request $request): JsonResponse
@@ -219,7 +235,7 @@ class BookingController extends Controller
 
         $paymentMethod = $this->formatPaymentMethod($paymentType, $payload);
 
-        // Update Database berdasarkan status transaksi
+        // Update Database berdasarkan status transaksi Midtrans
         if ($transactionStatus == 'capture') {
             if ($fraudStatus == 'challenge') {
                 $booking->update([
@@ -297,7 +313,7 @@ class BookingController extends Controller
 
         $newSnapToken = $this->generateSnapToken($booking);
 
-        if ($request->wantsJson() || $request->ajax()) {
+        if ($request->wantsJson() || $request->ajax()) { 
             return response()->json([
                 'success'    => true,
                 'snap_token' => $newSnapToken,
@@ -340,7 +356,6 @@ class BookingController extends Controller
 
         $params = [
             'transaction_details' => [
-                // Order ID statis agar timer tidak ter-reset ulang
                 'order_id'     => 'RENTAL-' . $booking->id,
                 'gross_amount' => $grossAmount,
             ],
