@@ -209,9 +209,8 @@ class BookingController extends Controller
             return response()->json(['message' => 'Invalid order ID'], 400);
         }
 
-        // Ekstrak ID Booking (Format Order ID: "RENTAL-{id}-{timestamp}")
-        $parts = explode('-', $orderId);
-        $bookingId = $parts[1] ?? null;
+        // Ekstrak ID Booking dari Order ID format: "RENTAL-{id}"
+        $bookingId = str_replace('RENTAL-', '', $orderId);
 
         $booking = Booking::find($bookingId);
         if (!$booking) {
@@ -341,7 +340,8 @@ class BookingController extends Controller
 
         $params = [
             'transaction_details' => [
-                'order_id'     => 'RENTAL-' . $booking->id . '-' . time(),
+                // Order ID statis agar timer tidak ter-reset ulang
+                'order_id'     => 'RENTAL-' . $booking->id,
                 'gross_amount' => $grossAmount,
             ],
             'customer_details' => [
@@ -391,7 +391,6 @@ class BookingController extends Controller
         $type = strtolower($paymentType);
 
         if ($type === 'bank_transfer') {
-            // Cek struktur array dari Webhook/SDK atau dari API response
             $bank = null;
 
             if (isset($payloadData['va_numbers'][0]['bank'])) {
