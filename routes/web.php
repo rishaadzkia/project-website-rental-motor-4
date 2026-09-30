@@ -62,8 +62,6 @@ Route::middleware('auth')->group(function () {
     // Route Status Pembayaran
     Route::get('/bookings/{booking}/status', [BookingController::class, 'status'])->name('bookings.status');
 
-    // Route::get('/orders', [BookingController::class, 'index'])->name('orders.index');
-
     // Khusus Admin
     Route::middleware('admin')->prefix('admin')->name('admin.')->group(function () { 
 
@@ -80,7 +78,5 @@ Route::middleware('auth')->group(function () {
         // Route Cetak Dokumen Admin
         Route::get('/bookings/{booking}/print-invoice', [AdminBookingController::class, 'printInvoice'])->name('bookings.print-invoice');
         Route::get('/bookings/{booking}/print-surat-jalan', [AdminBookingController::class, 'printSuratJalan'])->name('bookings.print-surat-jalan');
-
-        // Route::get('/orders', [AdminBookingController::class, 'index'])->name('orders.index');
     });
 });

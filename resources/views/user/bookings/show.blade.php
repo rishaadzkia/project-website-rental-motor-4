@@ -303,7 +303,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Inisialisasi tampilan harga & alamat saat halaman dimuat
         toggleAddressInput();
 
         const payButton = document.getElementById('pay-button');
@@ -346,7 +345,6 @@
                         throw new Error(result.message || 'Gagal memperbarui metode pengantaran.');
                     }
 
-                    // Perbarui token lokal jika Backend menerbitkan token baru
                     if (result.snap_token) {
                         currentSnapToken = result.snap_token;
                     }
@@ -357,18 +355,14 @@
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '') + "&transaction_status=" + (result.transaction_status || 'settlement'); 
                             },
                             onPending: function(result) { 
-                                alert("Pesanan kamu menunggu pembayaran. Silakan selesaikan pembayaran sesuai petunjuk.");
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                window.location.href = "{{ route('bookings.status', $booking) }}";
                             },
                             onError: function(result) { 
-                                alert("Pembayaran gagal atau dibatalkan."); 
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                window.location.href = "{{ route('bookings.status', $booking) }}";
                             },
                             onClose: function() { 
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                // Direct langsung ke halaman status pending saat pop-up ditutup
+                                window.location.href = "{{ route('bookings.status', $booking) }}";
                             }
                         });
                     } else {
