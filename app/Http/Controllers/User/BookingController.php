@@ -294,7 +294,7 @@ class BookingController extends Controller
 
         $newSnapToken = $this->generateSnapToken($booking);
 
-        if ($request->wantsJson() || $request->ajax()) {
+        if ($request->wantsJson() || $request->ajax()) { 
             return response()->json([
                 'success'    => true,
                 'snap_token' => $newSnapToken,

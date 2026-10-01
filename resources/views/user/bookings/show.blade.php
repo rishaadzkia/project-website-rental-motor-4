@@ -359,9 +359,7 @@
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
                             },
                             onError: function(result) { 
-                                alert("Pembayaran gagal atau dibatalkan."); 
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                window.location.href = "{{ route('bookings.status', $booking) }}";
                             },
                             onClose: function() { 
                                 // DIUBAH: Saat user close pop-up, langsung alihkan ke halaman status/countdown!
