@@ -50,133 +50,54 @@
 
                     $urlWA = "https://wa.me/" . $nomorAdmin . "?text=" . urlencode($pesanWA);
                 @endphp
-
                 <div class="d-flex justify-content-center">
                     <a href="{{ $urlWA }}" target="_blank" class="btn btn-success px-4 py-2 rounded-3 fw-semibold shadow-sm">
                         <i class="bi bi-whatsapp me-2"></i> Konfirmasi WhatsApp
                     </a>
                 </div>
 
-            {{-- 2. TAMPILAN JIKA STATUS PENDING (MENUNGGU PEMBAYARAN + COUNTDOWN) --}}
+            {{-- 2. TAMPILAN JIKA MENUNGGU PEMBAYARAN (PENDING + COUNTDOWN) --}}
             @elseif ($booking->status === 'pending')
-                <div class="mb-4 d-flex justify-content-center">
+                <div class="mb-3 d-flex justify-content-center">
                     <img src="{{ asset('images/failed_avatar.png') }}" 
                          alt="Menunggu Pembayaran" 
                          class="img-fluid mx-auto d-block" 
-                         style="max-height: 200px; width: auto;">
+                         style="max-height: 180px; width: auto;">
                 </div>
 
-                <!-- Tampilan Timer Countdown -->
+                <!-- COUNTDOWN TIMER -->
                 <div class="mb-3">
-                    <h2 class="fw-bold text-dark display-5 mb-1" id="countdown-timer">00<sub>j</sub> : 00<sub>m</sub> 00<sub>d</sub></h2>
-                    <p class="text-danger fw-semibold small mb-0">Selesaikan Pembayaranmu Sebelum Waktunya Habis</p>
+                    <h2 class="fw-bold text-dark display-6 mb-1" id="countdown-display">00m : 00d</h2>
+                    <p class="text-danger fw-semibold small mb-2">Selesaikan Pembayaranmu Sebelum Waktunya Habis</p>
+                    <p class="text-secondary small mx-auto" style="max-width: 460px;">
+                        Tinggal selangkah lagi kamu bisa bawa motor keliling! Selesaikan transaksimu sekarang. Jika ada kendala, jangan ragu hubungi admin kami.
+                    </p>
                 </div>
 
-                <p class="text-secondary mb-4 mx-auto" style="font-size: 0.95rem; line-height: 1.6; max-width: 480px;">
-                    Tinggal selangkah lagi kamu bisa bawa motor pilihanmu! Klik tombol di bawah untuk melanjutkan proses pembayaran.
-                </p>
-
-                @php
-                    $waPendingMsg = "Halo Admin, saya mengalami kendala saat pembayaran untuk booking ID #{$booking->id}. Mohon dibantu ya kak 🙏";
-                @endphp
-
-                <div class="d-flex justify-content-center gap-2 flex-wrap">
-                    <!-- Tombol Lanjutkan Pembayaran -->
-                    <button type="button" id="pay-button" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm">
-                        <i class="bi bi-credit-card me-1"></i> Bayar Sekarang
+                <div class="d-flex flex-column flex-sm-row justify-content-center gap-2 mt-4">
+                    <button type="button" id="pay-now-btn" class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm">
+                        Bayar Sekarang
                     </button>
 
-                    <!-- Tombol Batalkan Pesanan -->
-                    <form action="{{ route('bookings.cancel', $booking) }}" method="POST" onsubmit="return confirm('Apakah kamu yakin ingin membatalkan pesanan ini?')">
+                    <form action="{{ route('bookings.cancel', $booking) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin membatalkan pesanan ini?')">
                         @csrf
                         @method('PATCH')
-                        <button type="submit" class="btn btn-outline-danger px-3 py-2 rounded-3 fw-semibold shadow-sm">
-                            Batalkan
+                        <button type="submit" class="btn btn-outline-danger px-4 py-2 rounded-3 fw-semibold w-100">
+                            Batalkan Pesanan
                         </button>
                     </form>
 
-                    <!-- Tombol Bantuan WA -->
-                    <a href="https://wa.me/6288905604619?text={{ urlencode($waPendingMsg) }}" 
+                    @php
+                        $waHelpMsg = "Halo Admin, saya butuh bantuan untuk pembayaran pesanan ID #{$booking->id}. Mohon dibantu ya kak 🙏";
+                    @endphp
+                    <a href="https://wa.me/6288905604619?text={{ urlencode($waHelpMsg) }}" 
                        target="_blank" 
-                       class="btn btn-outline-success px-3 py-2 rounded-3 fw-semibold shadow-sm">
-                        <i class="bi bi-whatsapp"></i>
+                       class="btn btn-outline-success px-4 py-2 rounded-3 fw-semibold shadow-sm">
+                        <i class="bi bi-whatsapp me-1"></i> Chat Admin
                     </a>
                 </div>
 
-                @php
-                    $expiryTime = \Carbon\Carbon::parse($booking->created_at)->addHours(24)->timestamp * 1000;
-                @endphp
-
-                <!-- INTEGRASI MIDTRANS SNAP -->
-                @php
-                    $isProduction = config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false));
-                    $snapUrl = filter_var($isProduction, FILTER_VALIDATE_BOOLEAN)
-                        ? 'https://app.midtrans.com/snap/snap.js' 
-                        : 'https://app.sandbox.midtrans.com/snap/snap.js';
-                    $clientKey = config('services.midtrans.client_key', env('MIDTRANS_CLIENT_KEY'));
-                @endphp
-
-                <script src="{{ $snapUrl }}" data-client-key="{{ $clientKey }}"></script>
-
-                <script type="text/javascript">
-                    document.addEventListener('DOMContentLoaded', function () {
-                        const expiryTimestamp = {{ $expiryTime }};
-                        const timerElement = document.getElementById('countdown-timer');
-                        const payButton = document.getElementById('pay-button');
-                        const snapToken = "{{ $snapToken ?? $booking->snap_token ?? '' }}";
-
-                        // Trigger Midtrans Snap Popup
-                        if (payButton) {
-                            payButton.addEventListener('click', function () {
-                                if (!snapToken) {
-                                    alert('Token pembayaran tidak ditemukan. Silakan muat ulang halaman.');
-                                    return;
-                                }
-
-                                snap.pay(snapToken, {
-                                    onSuccess: function(result) { 
-                                        window.location.href = "{{ route('bookings.status', $booking) }}"; 
-                                    },
-                                    onPending: function(result) { 
-                                        window.location.href = "{{ route('bookings.status', $booking) }}";
-                                    },
-                                    onError: function(result) { 
-                                        window.location.href = "{{ route('bookings.status', $booking) }}";
-                                    },
-                                    onClose: function() { 
-                                        window.location.reload();
-                                    }
-                                });
-                            });
-                        }
-
-                        // Countdown Timer Real-time
-                        function updateCountdown() {
-                            const now = new Date().getTime();
-                            const distance = expiryTimestamp - now;
-
-                            if (distance <= 0) {
-                                timerElement.innerHTML = "<span class='text-danger fs-3'>Waktu Pembayaran Habis</span>";
-                                // Otomatis refresh agar sistem membatalkan pesanan
-                                setTimeout(() => {
-                                    window.location.reload();
-                                }, 2000);
-                                return;
-                            }
-
-                            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                            timerElement.innerHTML = `${hours}<sub>j</sub> : ${minutes < 10 ? '0' : ''}${minutes}<sub>m</sub> ${seconds < 10 ? '0' : ''}${seconds}<sub>d</sub>`;
-                        }
-
-                        updateCountdown();
-                        setInterval(updateCountdown, 1000);
-                    });
-                </script>
-
-            {{-- 3. TAMPILAN JIKA GAGAL / BATAL / EXPIRED --}}
+            {{-- 3. TAMPILAN JIKA GAGAL / BATAL / KADALUARSA --}}
             @else
                 <div class="mb-4 d-flex justify-content-center">
                     <img src="{{ asset('images/failed_avatar.png') }}" 
@@ -185,19 +106,19 @@
                          style="max-height: 180px; width: auto;">
                 </div>
 
-                <h3 class="fw-bold text-dark mb-3">Pesanan Dibatalkan / Kadaluarsa</h3>
+                <h3 class="fw-bold text-dark mb-3">Pesanan Batal / Kadaluarsa</h3>
                 <p class="text-secondary mb-4 mx-auto" style="font-size: 0.95rem; line-height: 1.6; max-width: 480px;">
-                    Masa berlaku pembayaran untuk pesanan ini telah habis atau dibatalkan. Kamu dapat membuat pemesanan baru.
+                    Masa pembayaran pesananmu sudah lewat atau pesanan telah dibatalkan. Kamu bisa membuat pesanan baru dari halaman daftar pesanan.
                 </p>
 
                 <div class="d-flex justify-content-center gap-2">
-                    <a href="{{ route('motorcycles.index') }}" 
+                    <a href="{{ route('bookings.index') }}" 
                        class="btn btn-primary px-4 py-2 rounded-3 fw-semibold shadow-sm">
-                        Cari Motor Lain
+                        Lihat Daftar Pesanan
                     </a>
 
                     @php
-                        $waHelpMsg = "Halo Admin, saya butuh bantuan terkait booking ID #{$booking->id} yang sudah dibatalkan. Mohon dibantu ya kak 🙏";
+                        $waHelpMsg = "Halo Admin, saya butuh bantuan untuk pesanan ID #{$booking->id} yang dibatalkan. Mohon dibantu ya kak 🙏";
                     @endphp
                     <a href="https://wa.me/6288905604619?text={{ urlencode($waHelpMsg) }}" 
                        target="_blank" 
@@ -210,4 +131,77 @@
         </div>
     </div>
 </div>
+
+@if ($booking->status === 'pending')
+    @php
+        $isProduction = config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false));
+        $snapUrl = filter_var($isProduction, FILTER_VALIDATE_BOOLEAN)
+            ? 'https://app.midtrans.com/snap/snap.js' 
+            : 'https://app.sandbox.midtrans.com/snap/snap.js';
+        $clientKey = config('services.midtrans.client_key', env('MIDTRANS_CLIENT_KEY'));
+
+        // FIX: Batas waktu: 5 menit setelah booking dibuat
+        $expiryTime = \Carbon\Carbon::parse($booking->created_at)->addMinutes(5)->timestamp * 1000;
+    @endphp
+
+    <script src="{{ $snapUrl }}" data-client-key="{{ $clientKey }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- LOGIKA COUNTDOWN TIMER ---
+            const expiryTimestamp = {{ $expiryTime }};
+            const countdownEl = document.getElementById('countdown-display');
+
+            function updateCountdown() {
+                const now = new Date().getTime();
+                const distance = expiryTimestamp - now;
+
+                if (distance < 0) {
+                    if (countdownEl) countdownEl.innerHTML = "Waktu Habis";
+                    window.location.reload();
+                    return;
+                }
+
+                // FIX: Ubah format ke menit dan detik saja
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                if (countdownEl) {
+                    countdownEl.innerHTML = `${minutes < 10 ? '0' : ''}${minutes}m : ${seconds < 10 ? '0' : ''}${seconds}d`;
+                }
+            }
+
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+
+            // --- LOGIKA TOMBOL BAYAR SEKARANG ---
+            const payBtn = document.getElementById('pay-now-btn');
+            const snapToken = "{{ $snapToken ?? '' }}";
+
+            if (payBtn) {
+                payBtn.addEventListener('click', function () {
+                    if (!snapToken) {
+                        alert('Token pembayaran tidak ditemukan. Halaman akan dimuat ulang.');
+                        window.location.reload();
+                        return;
+                    }
+
+                    snap.pay(snapToken, {
+                        onSuccess: function(result) {
+                            window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
+                        },
+                        onPending: function(result) {
+                            window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
+                        },
+                        onError: function(result) {
+                            alert("Pembayaran gagal!");
+                        },
+                        onClose: function() {
+                            // Tetap di halaman ini saat ditutup
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+@endif
 @endsection

@@ -320,7 +320,7 @@
                 }
 
                 payButton.disabled = true;
-                payButton.innerText = 'Memproses...';
+                payButton.innerText = 'Menyiapkan Pembayaran...';
 
                 try {
                     const formData = new FormData();
@@ -355,17 +355,19 @@
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '') + "&transaction_status=" + (result.transaction_status || 'settlement'); 
                             },
                             onPending: function(result) { 
-                                window.location.href = "{{ route('bookings.status', $booking) }}";
+                                // Redirect ke halaman status saat pending
+                                window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
                             },
                             onError: function(result) { 
                                 window.location.href = "{{ route('bookings.status', $booking) }}";
                             },
                             onClose: function() { 
-                                // Direct langsung ke halaman status pending saat pop-up ditutup
+                                // DIUBAH: Saat user close pop-up, langsung alihkan ke halaman status/countdown!
                                 window.location.href = "{{ route('bookings.status', $booking) }}";
                             }
                         });
                     } else {
+                        alert('Token gagal dimuat. Silakan muat ulang halaman.');
                         window.location.reload();
                     }
 

@@ -27,7 +27,6 @@ class BookingController extends Controller
 
     public function store(Request $request, Motorcycle $motorcycle): RedirectResponse
     {
-        // 1. Validasi Input
         $validated = $request->validate([
             'start_date'     => ['required', 'date', 'after_or_equal:today'],
             'start_time'     => ['required', 'date_format:H:i'],
@@ -38,14 +37,12 @@ class BookingController extends Controller
             'delivery_fee'   => ['nullable', 'numeric'],
         ]);
 
-        // 2. Cek Status Ketersediaan Unit Motor
         if ($motorcycle->status !== 'available') {
             return back()->withErrors([
                 'motorcycle' => 'Motor ini sedang tidak tersedia untuk disewa.',
             ])->withInput();
         }
 
-        // Gabungkan tanggal dan jam dengan Timezone Asia/Jakarta secara eksplisit
         $startDateTime = Carbon::createFromFormat(
             'Y-m-d H:i', 
             $validated['start_date'] . ' ' . $validated['start_time'], 
@@ -64,13 +61,11 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        // 3. Hitung Total Hari Sewa
         $diffInHours = $startDateTime->diffInHours($endDateTime);
         $totalDays   = (int) ceil($diffInHours / 24);
         $totalDays   = $totalDays > 0 ? $totalDays : 1;
         $totalPrice  = $totalDays * (float) $motorcycle->price_per_day;
 
-        // 4. Cek Bentrok Jadwal Booking
         $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
             ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
             ->where(function ($query) use ($startDateTime, $endDateTime) {
@@ -89,7 +84,6 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        // 5. Simpan Data Booking dengan Waktu Lengkap
         $pickupMethod = $validated['pickup_method'] ?? 'pool';
 
         $booking = Booking::create([
@@ -122,11 +116,19 @@ class BookingController extends Controller
         return view('user.bookings.index', compact('bookings'));
     }
 
-    public function show(Booking $booking): View
+    public function show(Booking $booking): View|RedirectResponse
     {
         abort_unless($booking->user_id === Auth::id(), 403);
 
         $booking->load(['motorcycle', 'user']);
+
+        if ($booking->status === 'pending') {
+            // FIX: Ubah addHours(24) menjadi addMinutes(5)
+            if (Carbon::parse($booking->created_at)->addMinutes(5)->isPast()) {
+                $booking->update(['status' => 'cancelled']);
+                return redirect()->route('bookings.status', $booking);
+            }
+        }
 
         $snapToken = $booking->snap_token;
 
@@ -143,20 +145,15 @@ class BookingController extends Controller
 
         $booking->load(['motorcycle', 'user']);
 
-        // Pengecekan Otomatis Batas Waktu 24 Jam untuk Status Pending
         if ($booking->status === 'pending') {
-            $createdAt = Carbon::parse($booking->created_at);
-            
-            if ($createdAt->addHours(24)->isPast()) {
-                $booking->update([
-                    'status' => 'cancelled',
-                ]);
+            // FIX: Ubah addHours(24) menjadi addMinutes(5)
+            if (Carbon::parse($booking->created_at)->addMinutes(5)->isPast()) {
+                $booking->update(['status' => 'cancelled']);
             }
         }
 
         $orderId = request('order_id');
 
-        // Jika ada parameter order_id dari callback Midtrans, verifikasi status langsung
         if ($orderId && $booking->status === 'pending') {
             $serverKey = config('services.midtrans.server_key', env('MIDTRANS_SERVER_KEY'));
             $isProduction = filter_var(config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false)), FILTER_VALIDATE_BOOLEAN);
@@ -204,7 +201,6 @@ class BookingController extends Controller
             }
         }
 
-        // Siapkan snap_token jika status masih pending untuk memicu tombol "Bayar Sekarang"
         $snapToken = $booking->snap_token;
         if ($booking->status === 'pending' && empty($snapToken)) {
             $snapToken = $this->generateSnapToken($booking);
@@ -225,8 +221,8 @@ class BookingController extends Controller
             return response()->json(['message' => 'Invalid order ID'], 400);
         }
 
-        // Ekstrak ID Booking dari Order ID format: "RENTAL-{id}"
-        $bookingId = str_replace('RENTAL-', '', $orderId);
+        $parts = explode('-', $orderId);
+        $bookingId = $parts[1] ?? null;
 
         $booking = Booking::find($bookingId);
         if (!$booking) {
@@ -235,13 +231,9 @@ class BookingController extends Controller
 
         $paymentMethod = $this->formatPaymentMethod($paymentType, $payload);
 
-        // Update Database berdasarkan status transaksi Midtrans
         if ($transactionStatus == 'capture') {
             if ($fraudStatus == 'challenge') {
-                $booking->update([
-                    'status'         => 'pending',
-                    'payment_method' => $paymentMethod,
-                ]);
+                $booking->update(['status' => 'pending', 'payment_method' => $paymentMethod]);
             } else if ($fraudStatus == 'accept') {
                 $booking->update([
                     'status'         => 'confirmed',
@@ -256,15 +248,9 @@ class BookingController extends Controller
                 'paid_at'        => $booking->paid_at ?? Carbon::now('Asia/Jakarta'),
             ]);
         } else if (in_array($transactionStatus, ['cancel', 'deny', 'expire'])) {
-            $booking->update([
-                'status'         => 'cancelled',
-                'payment_method' => $paymentMethod,
-            ]);
+            $booking->update(['status' => 'cancelled', 'payment_method' => $paymentMethod]);
         } else if ($transactionStatus == 'pending') {
-            $booking->update([
-                'status'         => 'pending',
-                'payment_method' => $paymentMethod,
-            ]);
+            $booking->update(['status' => 'pending', 'payment_method' => $paymentMethod]);
         }
 
         return response()->json(['message' => 'Notification processed successfully']);
@@ -280,12 +266,10 @@ class BookingController extends Controller
             ]);
         }
 
-        $booking->update([
-            'status' => 'cancelled',
-        ]);
+        $booking->update(['status' => 'cancelled']);
 
         return redirect()
-            ->route('bookings.index')
+            ->route('bookings.status', $booking)
             ->with('success', 'Booking berhasil dibatalkan.');
     }
 
@@ -297,9 +281,6 @@ class BookingController extends Controller
             'pickup_method'  => 'required|in:pool,delivery',
             'pickup_address' => 'required_if:pickup_method,delivery|nullable|string|min:10',
             'delivery_fee'   => 'nullable|numeric',
-        ], [
-            'pickup_address.required_if' => 'Alamat pengantaran wajib diisi jika memilih metode Diantar ke Lokasi.',
-            'pickup_address.min'         => 'Alamat pengantaran minimal 10 karakter agar lokasi jelas.',
         ]);
 
         $isDelivery = $request->pickup_method === 'delivery';
@@ -354,9 +335,11 @@ class BookingController extends Controller
             ];
         }
 
+        $orderId = 'RENTAL-' . $booking->id . '-' . time();
+
         $params = [
             'transaction_details' => [
-                'order_id'     => 'RENTAL-' . $booking->id,
+                'order_id'     => $orderId,
                 'gross_amount' => $grossAmount,
             ],
             'customer_details' => [
@@ -394,9 +377,6 @@ class BookingController extends Controller
         return null;
     }
 
-    /**
-     * Helper privat untuk mengekstrak dan merapikan nama metode pembayaran Midtrans
-     */
     private function formatPaymentMethod(?string $paymentType, array $payloadData = []): string
     {
         if (empty($paymentType)) {
@@ -407,7 +387,6 @@ class BookingController extends Controller
 
         if ($type === 'bank_transfer') {
             $bank = null;
-
             if (isset($payloadData['va_numbers'][0]['bank'])) {
                 $bank = $payloadData['va_numbers'][0]['bank'];
             } elseif (isset($payloadData['va_numbers'][0]->bank)) {
@@ -419,7 +398,6 @@ class BookingController extends Controller
             } elseif (!empty($payloadData['permata_va_number'])) {
                 return 'VA PERMATA';
             }
-
             return 'BANK TRANSFER';
         } elseif ($type === 'echannel') {
             return 'MANDIRI BILL';
