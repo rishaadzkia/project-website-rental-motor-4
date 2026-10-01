@@ -303,7 +303,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Inisialisasi tampilan harga & alamat saat halaman dimuat
         toggleAddressInput();
 
         const payButton = document.getElementById('pay-button');
@@ -321,7 +320,7 @@
                 }
 
                 payButton.disabled = true;
-                payButton.innerText = 'Memproses...';
+                payButton.innerText = 'Menyiapkan Pembayaran...';
 
                 try {
                     const formData = new FormData();
@@ -346,7 +345,6 @@
                         throw new Error(result.message || 'Gagal memperbarui metode pengantaran.');
                     }
 
-                    // Perbarui token lokal jika Backend menerbitkan token baru
                     if (result.snap_token) {
                         currentSnapToken = result.snap_token;
                     }
@@ -357,9 +355,8 @@
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '') + "&transaction_status=" + (result.transaction_status || 'settlement'); 
                             },
                             onPending: function(result) { 
-                                alert("Pesanan kamu menunggu pembayaran. Silakan selesaikan pembayaran sesuai petunjuk.");
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                // Redirect ke halaman status saat pending
+                                window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
                             },
                             onError: function(result) { 
                                 alert("Pembayaran gagal atau dibatalkan."); 
@@ -367,11 +364,12 @@
                                 payButton.innerText = 'Bayar Sekarang';
                             },
                             onClose: function() { 
-                                payButton.disabled = false;
-                                payButton.innerText = 'Bayar Sekarang';
+                                // DIUBAH: Saat user close pop-up, langsung alihkan ke halaman status/countdown!
+                                window.location.href = "{{ route('bookings.status', $booking) }}";
                             }
                         });
                     } else {
+                        alert('Token gagal dimuat. Silakan muat ulang halaman.');
                         window.location.reload();
                     }
 
