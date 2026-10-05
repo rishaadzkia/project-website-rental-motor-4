@@ -117,7 +117,7 @@
                             data-bs-target="#quickUpdateModal{{ $booking->id }}">
                         Update
                     </button>
-                </div>
+                </div> 
 
             </div>
         </div>
