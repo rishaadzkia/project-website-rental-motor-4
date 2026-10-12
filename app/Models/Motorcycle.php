@@ -20,8 +20,13 @@ class Motorcycle extends Model
         'price_per_day',
         'tank_capacity',
         'status', 
+        'maintenance_requested_at',
         'description',
         'image',
+    ];
+
+    protected $casts = [
+        'maintenance_requested_at' => 'datetime',
     ];
 
     /**
@@ -37,9 +42,9 @@ class Motorcycle extends Model
      */
     public function getComputedStatusAttribute(): string
     {
-        // 1. Jika Admin set manual ke maintenance, selalu kembalikan maintenance
-        if ($this->status === 'maintenance') {
-            return 'maintenance';
+        // 1. Jika Admin set manual ke maintenance atau pending_maintenance, selalu prioritaskan status ini
+        if (in_array($this->status, ['maintenance', 'pending_maintenance'])) {
+            return $this->status;
         }
 
         // 2. Ambil waktu acuan pengecekan (default waktu sekarang)
@@ -47,11 +52,10 @@ class Motorcycle extends Model
             ? Carbon::parse(request('rental_time')) 
             : Carbon::now();
 
-        $checkDate = $checkTime->toDateString(); // Contoh: '2026-10-20'
+        $checkDate = $checkTime->toDateString();
 
         // 3. Cek apakah ada transaksi sewa aktif pada tanggal tersebut
         $isRented = $this->bookings()
-            // Masukkan semua status booking yang dianggap sah/terkonfirmasi
             ->whereIn('status', ['confirmed', 'paid', 'approved', 'active', 'ongoing', 'terkonfirmasi'])
             ->whereDate('start_date', '<=', $checkDate)
             ->whereDate('end_date', '>=', $checkDate)
