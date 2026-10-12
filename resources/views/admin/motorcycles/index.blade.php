@@ -13,13 +13,6 @@
         </button>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show rounded-3 mb-4" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     <!-- Form Filter & Pencarian -->
     <form method="GET" action="{{ route('admin.motorcycles.index') }}" class="card border-0 shadow-sm rounded-3 p-3 mb-4 bg-white">
         <div class="row g-3 align-items-end">
@@ -30,6 +23,7 @@
                     <option value="semua" @selected(request('status') == 'semua')>Semua Status</option>
                     <option value="available" @selected(request('status') == 'available')>Tersedia</option>
                     <option value="rented" @selected(request('status') == 'rented')>Disewa</option>
+                    <option value="pending_maintenance" @selected(request('status') == 'pending_maintenance')>Pending Perawatan</option>
                     <option value="maintenance" @selected(request('status') == 'maintenance')>Perawatan</option>
                 </select>
             </div>
@@ -99,12 +93,15 @@
                         <span class="small fw-semibold 
                             @if($currentStatus === 'available') text-success
                             @elseif($currentStatus === 'rented') text-primary
+                            @elseif($currentStatus === 'pending_maintenance') text-warning
                             @else text-secondary
                             @endif">
                             • @if($currentStatus === 'available')
                                 Tersedia
                               @elseif($currentStatus === 'rented')
                                 Disewa
+                              @elseif($currentStatus === 'pending_maintenance')
+                                Pending Perawatan
                               @else
                                 Perawatan
                               @endif
@@ -280,7 +277,7 @@
                                         <label class="form-label fw-semibold small text-dark mb-1">Status Kendaraan</label>
                                         <select name="status" class="form-select rounded-3 py-2" required>
                                             <option value="available" @selected(old('status', $motor->status) === 'available')>Tersedia (Otomatis Cek Sewa)</option>
-                                            <option value="maintenance" @selected(old('status', $motor->status) === 'maintenance')>Perawatan (Maintenance)</option>
+                                            <option value="maintenance" @selected(old('status', $motor->status) === 'maintenance' || old('status', $motor->status) === 'pending_maintenance')>Perawatan (Maintenance)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -440,7 +437,106 @@
     </div>
 </div>
 
-<!-- Scripts JavaScript Preview Image & Auto Open Modal saat Validation Error -->
+<!-- ================= MODAL NOTIFIKASI SUCCESS ================= -->
+@if(session('success') && !session('warning_upcoming_bookings'))
+<div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 p-3 shadow">
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-check-circle text-success display-3 mb-3"></i>
+                <h4 class="fw-bold text-dark mb-2">Berhasil!</h4>
+                <p class="text-muted mb-4">{{ session('success') }}</p>
+                <button type="button" class="btn btn-primary px-4 rounded-3 fw-medium" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- ================= MODAL NOTIFIKASI ERROR ================= -->
+@if(session('error'))
+<div class="modal fade" id="errorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 p-3 shadow">
+            <div class="modal-body text-center py-4">
+                <i class="bi bi-x-circle text-danger display-3 mb-3"></i>
+                <h4 class="fw-bold text-dark mb-2">Gagal Transaksi</h4>
+                <p class="text-muted mb-4">{{ session('error') }}</p>
+                <button type="button" class="btn btn-danger px-4 rounded-3 fw-medium" data-bs-dismiss="modal">Tutup</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- ================= MODAL NOTIFIKASI WARNING UPCOMING BOOKINGS ================= -->
+@if(session('warning_upcoming_bookings'))
+<div class="modal fade" id="warningUpcomingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 p-3 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill fs-4"></i> Perhatian: Motor Pending Perawatan!
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="text-muted mb-3">
+                    Motor diubah ke status <strong>Pending Perawatan</strong> karena memiliki pemesanan di masa mendatang. Harap segera hubungi pelanggan untuk koordinasi penyesuaian pesanan:
+                </p>
+                <div class="list-group rounded-3 overflow-hidden border">
+                    @foreach(session('warning_upcoming_bookings') as $booking)
+                        @php
+                            // Ambil dari field no_wa, no_hp, atau phone_number
+                            $phone = $booking->user->no_wa 
+                                  ?? $booking->user->no_hp 
+                                  ?? $booking->user->phone_number 
+                                  ?? '';
+
+                            // Bersihkan karakter non-angka
+                            $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+
+                            // Format ke nomor internasional WhatsApp (628...)
+                            if (str_starts_with($cleanPhone, '0')) {
+                                $cleanPhone = '62' . substr($cleanPhone, 1);
+                            }
+
+                            $userName = $booking->user->name ?? 'Pelanggan';
+                            $motorName = $booking->motorcycle->name ?? 'kendaraan';
+                            $startDate = \Carbon\Carbon::parse($booking->start_date)->format('d M Y');
+                            
+                            $waMessage = "Halo " . $userName . ", terkait pemesanan sewa motor " . $motorName . " untuk tanggal " . $startDate . " di ED.RENT...";
+                        @endphp
+                        <div class="list-group-item d-flex justify-content-between align-items-center p-3">
+                            <div>
+                                <h6 class="mb-1 fw-bold text-dark">{{ $userName }}</h6>
+                                <div class="text-muted small">
+                                    <span class="me-2"><i class="bi bi-bicycle me-1"></i> {{ $motorName }}</span>
+                                    <span><i class="bi bi-calendar-event me-1"></i> Tanggal Sewa: <strong>{{ $startDate }}</strong></span>
+                                </div>
+                            </div>
+                            @if($cleanPhone)
+                                <a href="https://wa.me/{{ $cleanPhone }}?text={{ urlencode($waMessage) }}" 
+                                   target="_blank" 
+                                   class="btn btn-success rounded-pill px-3 py-1.5 fw-medium d-inline-flex align-items-center gap-1 shadow-sm">
+                                    <i class="bi bi-whatsapp fs-6"></i> Hubungi WA
+                                </a>
+                            @else
+                                <span class="badge bg-secondary">Tidak ada No. WA</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4 rounded-3 fw-medium" data-bs-dismiss="modal">Mengerti</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+<!-- Scripts JavaScript Preview Image & Auto Open Modal -->
 <script>
     function previewImage(event) {
         const input = event.target;
@@ -472,11 +568,30 @@
         }
     }
 
-    @if ($errors->any())
-        document.addEventListener('DOMContentLoaded', function () {
-            var myModal = new bootstrap.Modal(document.getElementById('createMotorModal'));
-            myModal.show();
-        });
-    @endif
+    document.addEventListener('DOMContentLoaded', function () {
+        // Auto trigger Modal Tambah jika ada Error Validasi Form
+        @if ($errors->any())
+            var createModal = new bootstrap.Modal(document.getElementById('createMotorModal'));
+            createModal.show();
+        @endif
+
+        // Auto trigger Modal Success
+        @if (session('success') && !session('warning_upcoming_bookings'))
+            var successModal = new bootstrap.Modal(document.getElementById('successModal'));
+            successModal.show();
+        @endif
+
+        // Auto trigger Modal Error
+        @if (session('error'))
+            var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+            errorModal.show();
+        @endif
+
+        // Auto trigger Modal Warning Upcoming Bookings
+        @if (session('warning_upcoming_bookings'))
+            var warningModal = new bootstrap.Modal(document.getElementById('warningUpcomingModal'));
+            warningModal.show();
+        @endif
+    });
 </script>
 @endsection
