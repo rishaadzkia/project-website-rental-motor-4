@@ -12,8 +12,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // 1. Update enum kolom 'status' untuk menambah 'pending_maintenance'
-        DB::statement("ALTER TABLE motorcycles MODIFY COLUMN status ENUM('available', 'maintenance', 'pending_maintenance') DEFAULT 'available'");
+        // 1. Preserve existing statuses while adding 'pending_maintenance'
+        DB::statement("ALTER TABLE motorcycles MODIFY COLUMN status ENUM('available', 'rented', 'maintenance', 'pending_maintenance') DEFAULT 'available'");
 
         // 2. Tambahkan kolom 'maintenance_requested_at' jika belum ada
         Schema::table('motorcycles', function (Blueprint $table) {
@@ -28,8 +28,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Kembalikan kolom status ke enum semula
-        DB::statement("ALTER TABLE motorcycles MODIFY COLUMN status ENUM('available', 'maintenance') DEFAULT 'available'");
+        // Map the new status to the closest status supported by the original enum.
+        DB::table('motorcycles')
+            ->where('status', 'pending_maintenance')
+            ->update(['status' => 'maintenance']);
+
+        // Restore the original enum values, including 'rented'.
+        DB::statement("ALTER TABLE motorcycles MODIFY COLUMN status ENUM('available', 'rented', 'maintenance') DEFAULT 'available'");
 
         // Hapus kolom maintenance_requested_at jika ditambahkan
         Schema::table('motorcycles', function (Blueprint $table) {
