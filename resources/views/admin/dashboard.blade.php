@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 
 @section('content')
+<div class="admin-dashboard">
 <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-4">
     <div>
         <h3 class="fw-bold text-dark mb-1">Dashboard</h3>
@@ -39,7 +40,7 @@
     <div class="col-sm-6 col-xl-4">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body p-4 d-flex align-items-center gap-3">
-                <div class="rounded-3 bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                <div class="rounded-3 bg-warning bg-opacity-10 text-warning-emphasis d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
                     <i class="bi bi-hourglass-split fs-4"></i>
                 </div>
                 <div>
@@ -172,6 +173,7 @@
         </div>
     </div>
 </div>
+</div>
 @endsection
 
 @push('scripts')
@@ -211,15 +213,19 @@
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: { color: '#f1f3f5' },
+                    grid: { color: 'rgba(188, 204, 232, .16)' },
                     ticks: {
+                        color: '#aab8cf',
                         callback: (value) => `Rp ${new Intl.NumberFormat('id-ID', {
                             notation: 'compact',
                             maximumFractionDigits: 1,
                         }).format(value)}`,
                     },
                 },
-                x: { grid: { display: false } },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#aab8cf' },
+                },
             },
         },
     });

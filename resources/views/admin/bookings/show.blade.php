@@ -3,7 +3,7 @@
 @section('title', 'Detail Booking')
 
 @section('content')
-<div class="container-fluid py-4" style="background-color: #f0f4f8; min-height: 100vh;">
+<div class="container-fluid booking-detail-page py-4">
 
     {{-- ==================== HEADER ==================== --}}
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
@@ -29,7 +29,7 @@
             {{-- Badge Status Utama (satu-satunya) --}}
 @php
     $statusClasses = [
-        'pending'   => 'bg-warning bg-opacity-10 text-warning border border-warning',
+        'pending'   => 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning',
         'confirmed' => 'bg-info bg-opacity-10 text-info border border-info',
         'ongoing'   => 'bg-primary bg-opacity-10 text-primary border border-primary',
         'completed' => 'bg-success bg-opacity-10 text-success border border-success',
@@ -188,7 +188,7 @@
                             <h6 class="fw-bold text-dark mb-0">
                                 <i class="fas fa-id-card text-primary me-2"></i>Identitas & verifikasi fisik
                             </h6>
-                            <span class="badge rounded-pill px-2 py-1 small {{ ($booking->is_verified ?? false) ? 'bg-success bg-opacity-10 text-success border border-success' : 'bg-warning bg-opacity-10 text-warning border border-warning' }}">
+                            <span class="badge rounded-pill px-2 py-1 small {{ ($booking->is_verified ?? false) ? 'bg-success bg-opacity-10 text-success border border-success' : 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning' }}">
                                 {{ ($booking->is_verified ?? false) ? 'Terverifikasi' : 'Belum verifikasi' }}
                             </span>
                         </div>
@@ -233,7 +233,7 @@
                         <div>
                             <div class="text-muted small mb-1">Jaminan di lapangan</div>
                             <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fw-medium">
-                                <i class="fas fa-shield-alt me-1 text-warning"></i>
+                                <i class="fas fa-shield-alt me-1 text-warning-emphasis"></i>
                                 {{ $booking->physical_deposit ?? 'E-KTP asli / Paspor / Motor pribadi' }}
                             </span>
                         </div>

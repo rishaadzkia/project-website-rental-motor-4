@@ -93,7 +93,7 @@
                         <span class="small fw-semibold 
                             @if($currentStatus === 'available') text-success
                             @elseif($currentStatus === 'rented') text-primary
-                            @elseif($currentStatus === 'pending_maintenance') text-warning
+                            @elseif($currentStatus === 'pending_maintenance') text-warning-emphasis
                             @else text-secondary
                             @endif">
                             • @if($currentStatus === 'available')
@@ -475,7 +475,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 p-3 shadow">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold text-warning d-flex align-items-center gap-2">
+                <h5 class="modal-title fw-bold text-warning-emphasis d-flex align-items-center gap-2">
                     <i class="bi bi-exclamation-triangle-fill fs-4"></i> Perhatian: Motor Pending Perawatan!
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
