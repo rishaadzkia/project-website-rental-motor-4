@@ -130,13 +130,7 @@ class BookingController extends Controller
             }
         }
 
-        $snapToken = $booking->snap_token;
-
-        if ($booking->status === 'pending' && empty($snapToken)) {
-            $snapToken = $this->generateSnapToken($booking);
-        }
-
-        return view('user.bookings.show', compact('booking', 'snapToken'));
+        return view('user.bookings.invoice', compact('booking'));
     }
 
     public function status(Booking $booking): View
