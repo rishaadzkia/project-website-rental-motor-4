@@ -482,6 +482,10 @@ body.bg-light {
     color: var(--text-secondary) !important;
 }
 
+.card {
+    color: var(--text-primary);
+}
+
 h1,
 h2,
 h3,
