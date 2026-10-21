@@ -124,7 +124,7 @@
                        target="_blank" 
                        class="btn btn-outline-success px-4 py-2 rounded-3 fw-semibold shadow-sm">
                         <i class="bi bi-whatsapp me-1"></i> Chat Admin
-                    </a>
+                    </a> 
                 </div>
             @endif
 
