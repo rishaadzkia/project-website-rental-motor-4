@@ -14,23 +14,23 @@
             <li class="nav-item">
     @auth
         @if(auth()->user()->role === 'admin') {{-- Sesuaikan dengan nama kolom role di database kamu (misal: is_admin / role) --}}
-            <a class="nav-link text-muted small p-0" href="{{ route('admin.motorcycles.index') }}">Pilih Kendaraan</a>
+            <a class="nav-link text-secondary small p-0" href="{{ route('admin.motorcycles.index') }}">Pilih Kendaraan</a>
         @else
-            <a class="nav-link text-muted small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
+            <a class="nav-link text-secondary small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
         @endif
     @else
-        <a class="nav-link text-muted small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
+        <a class="nav-link text-secondary small p-0" href="{{ route('motorcycles.index') }}">Pilih Kendaraan</a>
     @endauth
 </li>
             <li class="nav-item">
     @auth
         @if(auth()->user()->role === 'admin') {{-- Sesuaikan kolom role (misal: is_admin == 1 atau role === 'admin') --}}
-            <a class="nav-link text-muted small p-0" href="{{ route('admin.bookings.index') }}">Daftar Pesanan</a>
+            <a class="nav-link text-secondary small p-0" href="{{ route('admin.bookings.index') }}">Daftar Pesanan</a>
         @else
-            <a class="nav-link text-muted small p-0" href="{{ route('bookings.index') }}">Daftar Pesanan</a>
+            <a class="nav-link text-secondary small p-0" href="{{ route('bookings.index') }}">Daftar Pesanan</a>
         @endif
     @else
-        <a class="nav-link text-muted small p-0" href="{{ route('login') }}">Daftar Pesanan</a>
+        <a class="nav-link text-secondary small p-0" href="{{ route('login') }}">Daftar Pesanan</a>
     @endauth
 </li>
         </ul>
@@ -80,13 +80,15 @@
 
                         <!-- Menu Tambahan -->
                         <li>
-                            <a class="dropdown-item rounded-3 py-2 px-3 small text-secondary fw-medium d-flex align-items-center gap-2" href="#">
+                            <a class="dropdown-item rounded-3 py-2 px-3 small text-secondary fw-medium d-flex align-items-center gap-2"
+                               href="{{ Auth::user()->role === 'admin' ? route('admin.bookings.index') : route('bookings.index') }}">
                                 <i class="bi bi-bag fs-6"></i> Daftar Pesanan
                             </a>
                         </li>
                         <li>
-                            <a class="dropdown-item rounded-3 py-2 px-3 small text-secondary fw-medium d-flex align-items-center gap-2" href="#">
-                                <i class="bi bi-chat-square-dots fs-6"></i> Kendaraan
+                            <a class="dropdown-item rounded-3 py-2 px-3 small text-secondary fw-medium d-flex align-items-center gap-2"
+                               href="{{ Auth::user()->role === 'admin' ? route('admin.motorcycles.index') : route('motorcycles.index') }}">
+                                <i class="bi bi-scooter fs-6"></i> Kendaraan
                             </a>
                         </li>
 

@@ -12,6 +12,16 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
+    @if ($errors->any())
+        <div class="alert alert-danger rounded-3 mb-4" role="alert">
+            <p class="fw-semibold mb-1">Pesanan belum berhasil diperbarui:</p>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
     <!-- List Card Pesanan -->
     <div class="d-flex flex-column gap-3">
@@ -58,7 +68,7 @@
                             $statusClasses = [
                                 'pending' => 'bg-secondary bg-opacity-10 text-secondary',
                                 'confirmed' => 'bg-success bg-opacity-10 text-success',
-                                'ongoing' => 'bg-warning bg-opacity-10 text-warning',
+                                'ongoing' => 'bg-warning bg-opacity-10 text-warning-emphasis',
                                 'completed' => 'bg-info bg-opacity-10 text-info',
                                 'cancelled' => 'bg-danger bg-opacity-10 text-danger',
                             ];

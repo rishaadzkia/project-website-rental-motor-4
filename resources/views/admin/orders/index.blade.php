@@ -78,7 +78,7 @@
                         $statusClasses = [
                             'pending' => 'bg-secondary bg-opacity-10 text-secondary',
                             'confirmed' => 'bg-info bg-opacity-10 text-info',
-                            'ongoing' => 'bg-warning bg-opacity-10 text-dark',
+                            'ongoing' => 'bg-warning bg-opacity-10 text-warning-emphasis',
                             'completed' => 'bg-success bg-opacity-10 text-success',
                             'overdue' => 'bg-danger text-white',
                             'cancelled' => 'bg-danger bg-opacity-10 text-danger',
@@ -146,7 +146,6 @@
                                 <option value="confirmed" {{ $booking->status == 'confirmed' ? 'selected' : '' }}>Siap Ambil / Diantar</option>
                                 <option value="ongoing" {{ $booking->status == 'ongoing' ? 'selected' : '' }}>Disewa (Aktif)</option>
                                 <option value="completed" {{ $booking->status == 'completed' ? 'selected' : '' }}>Selesai</option>
-                                <option value="overdue" {{ $booking->status == 'overdue' ? 'selected' : '' }}>Terlambat (Overdue)</option>
                                 <option value="cancelled" {{ $booking->status == 'cancelled' ? 'selected' : '' }}>Batal</option>
                             </select>
                         </div>

@@ -16,7 +16,7 @@ body {
 }
 
 main {
-    animation: content-arrive .55s cubic-bezier(.2, .7, .25, 1) both;
+    animation: fade-arrive .55s ease-out;
 }
 
 nav,
@@ -674,6 +674,54 @@ textarea.form-control {
 
 .opacity-25 {
     opacity: .5 !important;
+}
+
+.booking-detail-page {
+    --booking-text-primary: #edf3ff;
+    --booking-text-secondary: #c0cce0;
+    min-height: 100vh;
+    color: var(--booking-text-primary);
+    background:
+        radial-gradient(ellipse at 16% -8%, rgba(48, 91, 166, .2), transparent 34rem),
+        linear-gradient(145deg, #101827 0%, #151e2e 48%, #101827 100%);
+}
+
+.booking-detail-page .card {
+    color: var(--booking-text-primary) !important;
+}
+
+.booking-detail-page .text-dark,
+.booking-detail-page .text-body {
+    color: var(--booking-text-primary) !important;
+}
+
+.booking-detail-page .text-muted,
+.booking-detail-page .text-secondary {
+    color: var(--booking-text-secondary) !important;
+}
+
+.booking-detail-page .text-warning-emphasis {
+    color: #ffd166 !important;
+}
+
+.admin-dashboard .card {
+    color: var(--text-primary) !important;
+}
+
+.admin-dashboard .text-primary {
+    color: #75a7ff !important;
+}
+
+.admin-dashboard .text-success {
+    color: #5fdda0 !important;
+}
+
+.admin-dashboard .text-warning-emphasis {
+    color: #ffd166 !important;
+}
+
+.admin-dashboard .text-info-emphasis {
+    color: #78dbef !important;
 }
 
 @media (prefers-reduced-transparency: reduce) {
