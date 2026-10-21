@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{{ $booking->booking_code ?? $booking->id }} - {{ $booking->user->name ?? 'Pelanggan' }}</title>
+    <title>Invoice {{ $booking->booking_code ?? '#' . $booking->id }} - {{ $booking->user->name ?? 'Pelanggan' }}</title>
     
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.com/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
     <style>
@@ -60,6 +60,11 @@
 
     <!-- Tombol Aksi (Hanya tampil di layar monitor) -->
     <div class="container no-print mt-4 mb-2 text-center">
+        @if ($booking->status === 'pending')
+            <a href="{{ route('bookings.status', $booking) }}" class="btn btn-success px-4 py-2 me-2 rounded-3 shadow-sm">
+                Lanjutkan Pembayaran
+            </a>
+        @endif
         <button onclick="window.print()" class="btn btn-primary px-4 py-2 me-2 rounded-3 shadow-sm">
             <i class="bi bi-printer-fill me-1"></i> Cetak Invoice
         </button>
@@ -79,7 +84,7 @@
             </div>
             <div class="text-end">
                 <h4 class="fw-bold text-uppercase text-dark mb-1">INVOICE</h4>
-                <p class="mb-1 text-muted small">No. Referensi: <strong class="text-dark">#{{ $booking->booking_code ?? sprintf('%05d', $booking->id) }}</strong></p>
+                <p class="mb-1 text-muted small">No. Referensi: <strong class="text-dark">{{ $booking->booking_code ?? '#' . sprintf('%05d', $booking->id) }}</strong></p>
                 <p class="mb-0 text-muted small">Tanggal: {{ \Carbon\Carbon::parse($booking->created_at)->translatedFormat('d F Y') }}</p>
             </div>
         </div>
