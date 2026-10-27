@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Motorcycle;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
-use Carbon\Carbon;
 
 class MotorcycleController extends Controller
 {
@@ -53,7 +53,7 @@ class MotorcycleController extends Controller
             }
         }
 
-        $motorcycles = $query->latest()->paginate(4)->withQueryString();
+        $motorcycles = $query->latest()->paginate(10)->withQueryString();
 
         return view('admin.motorcycles.index', compact('motorcycles'));
     }
@@ -104,7 +104,6 @@ class MotorcycleController extends Controller
         $upcomingBookings = null;
 
         if ($validated['status'] === 'maintenance') {
-            // Cek jika motor sedang disewa hari ini (Ongoing)
             $isCurrentlyRented = $motorcycle->bookings()
                 ->whereIn('status', $activeStatuses)
                 ->whereDate('start_date', '<=', $today)
@@ -117,16 +116,13 @@ class MotorcycleController extends Controller
                     ->with('error', 'Gagal mengubah status! Motor sedang digunakan oleh penyewa saat ini.');
             }
 
-            // Ambil booking mendatang
-           // Ganti operator '>' menjadi '>='
-$upcomingBookings = $motorcycle->bookings()
-    ->with('user')
-    ->whereIn('status', $activeStatuses)
-    ->whereDate('end_date', '>=', $today) // Memastikan semua booking yang belum selesai/akan datang ikut terdeteksi
-    ->orderBy('start_date', 'asc')
-    ->get();
+            $upcomingBookings = $motorcycle->bookings()
+                ->with('user')
+                ->whereIn('status', $activeStatuses)
+                ->whereDate('end_date', '>=', $today)
+                ->orderBy('start_date', 'asc')
+                ->get();
 
-            // Jika ada booking mendatang, ubah status ke PENDING MAINTENANCE + set waktu pengajuan
             if ($upcomingBookings->count() > 0) {
                 $validated['status'] = 'pending_maintenance';
                 $validated['maintenance_requested_at'] = now();
@@ -163,15 +159,25 @@ $upcomingBookings = $motorcycle->bookings()
         $today = Carbon::today()->toDateString();
         $activeStatuses = ['confirmed', 'paid', 'approved', 'active', 'ongoing', 'terkonfirmasi'];
 
-        $hasActiveOrUpcomingBooking = $motorcycle->bookings()
+        // Ambil data pemesanan aktif atau di masa mendatang milik motor ini
+        $activeBookings = $motorcycle->bookings()
+            ->with('user')
             ->whereIn('status', $activeStatuses)
             ->whereDate('end_date', '>=', $today)
-            ->exists();
+            ->orderBy('start_date', 'asc')
+            ->get();
 
-        if ($hasActiveOrUpcomingBooking) {
+        // FIKSASI: Jika ada transaksi berjalan/mendatang, tampilkan modal daftar WA pelanggan
+        if ($activeBookings->count() > 0) {
             return redirect()
                 ->back()
-                ->with('error', 'Gagal menghapus! Motor sedang disewa atau memiliki jadwal sewa di masa mendatang.');
+                ->with('warning_delete_bookings', $activeBookings)
+                ->with('deleted_motor_name', $motorcycle->name);
+        }
+
+        // Hapus file gambar jika ada
+        if ($motorcycle->image) {
+            Storage::disk('public')->delete($motorcycle->image);
         }
 
         $motorcycle->delete();

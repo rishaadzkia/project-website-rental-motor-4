@@ -16,10 +16,10 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
-    public function create(Motorcycle $motorcycle): View
+    public function create(Motorcycle $motorcycle): View|RedirectResponse
     {
-        if ($motorcycle->status !== 'available') {
-            abort(404);
+        if ($motorcycle->status === 'maintenance') {
+            return redirect()->route('home')->with('error', 'Motor ini sedang dalam perawatan rutin.');
         }
 
         return view('user.bookings.create', compact('motorcycle'));
@@ -36,12 +36,6 @@ class BookingController extends Controller
             'pickup_address' => ['nullable', 'string', 'required_if:pickup_method,delivery'],
             'delivery_fee'   => ['nullable', 'numeric'],
         ]);
-
-        if ($motorcycle->status !== 'available') {
-            return back()->withErrors([
-                'motorcycle' => 'Motor ini sedang tidak tersedia untuk disewa.',
-            ])->withInput();
-        }
 
         $startDateTime = Carbon::createFromFormat(
             'Y-m-d H:i', 
@@ -61,10 +55,10 @@ class BookingController extends Controller
             ])->withInput();
         }
 
-        $diffInHours = $startDateTime->diffInHours($endDateTime);
-        $totalDays   = (int) ceil($diffInHours / 24);
-        $totalDays   = $totalDays > 0 ? $totalDays : 1;
-        $totalPrice  = $totalDays * (float) $motorcycle->price_per_day;
+        Booking::where('motorcycle_id', $motorcycle->id)
+            ->where('status', 'pending')
+            ->where('created_at', '<=', Carbon::now('Asia/Jakarta')->subMinutes(5))
+            ->update(['status' => 'cancelled']);
 
         $hasConflict = Booking::where('motorcycle_id', $motorcycle->id)
             ->whereIn('status', ['pending', 'confirmed', 'ongoing'])
@@ -80,9 +74,14 @@ class BookingController extends Controller
 
         if ($hasConflict) {
             return back()->withErrors([
-                'start_date' => 'Motor sudah dibooking pada rentang tanggal & jam tersebut.',
+                'start_date' => 'Motor sudah dibooking pada rentang tanggal & jam tersebut. Silakan pilih tanggal/jam lain.',
             ])->withInput();
         }
+
+        $diffInHours = $startDateTime->diffInHours($endDateTime);
+        $totalDays   = (int) ceil($diffInHours / 24);
+        $totalDays   = $totalDays > 0 ? $totalDays : 1;
+        $totalPrice  = $totalDays * (float) $motorcycle->price_per_day;
 
         $pickupMethod = $validated['pickup_method'] ?? 'pool';
 
@@ -102,8 +101,8 @@ class BookingController extends Controller
         ]);
 
         return redirect()
-            ->route('bookings.show', $booking)
-            ->with('success', 'Booking berhasil dibuat. Silakan selesaikan pembayaran.');
+            ->route('bookings.show', ['booking' => $booking->id, 'checkout' => 1])
+            ->with('success', 'Booking baru berhasil dibuat. Silakan selesaikan pembayaran.');
     }
 
     public function index(): View
@@ -116,20 +115,24 @@ class BookingController extends Controller
         return view('user.bookings.index', compact('bookings'));
     }
 
-    public function show(Booking $booking): View|RedirectResponse
+    public function show(Booking $booking, Request $request): View|RedirectResponse
     {
         abort_unless($booking->user_id === Auth::id(), 403);
 
-        $booking->load(['motorcycle', 'user']);
+        $booking->unsetRelation('user')->load(['motorcycle', 'user']);
 
         if ($booking->status === 'pending') {
-            // FIX: Ubah addHours(24) menjadi addMinutes(5)
             if (Carbon::parse($booking->created_at)->addMinutes(5)->isPast()) {
                 $booking->update(['status' => 'cancelled']);
-                return redirect()->route('bookings.status', $booking);
             }
         }
 
+        // 1. Jika pengguna baru klik "Booking" (punya ?checkout=1 & status pending) -> Tampilkan Form Pembayaran (show.blade.php)
+        if ($request->has('checkout') && $booking->status === 'pending') {
+            return view('user.bookings.show', compact('booking'));
+        }
+
+        // 2. Jika pengguna klik dari "Daftar Pesanan" -> Tampilkan Invoice Digital (invoice.blade.php)
         return view('user.bookings.invoice', compact('booking'));
     }
 
@@ -140,7 +143,6 @@ class BookingController extends Controller
         $booking->load(['motorcycle', 'user']);
 
         if ($booking->status === 'pending') {
-            // FIX: Ubah addHours(24) menjadi addMinutes(5)
             if (Carbon::parse($booking->created_at)->addMinutes(5)->isPast()) {
                 $booking->update(['status' => 'cancelled']);
             }
@@ -200,6 +202,7 @@ class BookingController extends Controller
             $snapToken = $this->generateSnapToken($booking);
         }
 
+        // SELALU TAMPILKAN HALAMAN STATUS SETELAH BAYAR
         return view('user.bookings.status', compact('booking', 'snapToken'));
     }
 
@@ -331,6 +334,10 @@ class BookingController extends Controller
 
         $orderId = 'RENTAL-' . $booking->id . '-' . time();
 
+        $createdAt = Carbon::parse($booking->created_at);
+        $expiresAt = $createdAt->copy()->addMinutes(5);
+        $durationInMinutes = max(1, (int) ceil(now('Asia/Jakarta')->diffInMinutes($expiresAt, false)));
+
         $params = [
             'transaction_details' => [
                 'order_id'     => $orderId,
@@ -341,7 +348,12 @@ class BookingController extends Controller
                 'email'      => $booking->user->email ?? 'customer@example.com',
                 'phone'      => $booking->user->no_hp ?? '08123456789',
             ],
-            'item_details' => $itemDetails
+            'item_details' => $itemDetails,
+            'expiry' => [
+                'start_time' => Carbon::now('Asia/Jakarta')->format('Y-m-d H:i:s O'),
+                'unit'       => 'minute',
+                'duration'   => $durationInMinutes,
+            ]
         ];
 
         try {

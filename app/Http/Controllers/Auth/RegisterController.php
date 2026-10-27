@@ -17,22 +17,67 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        // 1. Validasi data sesuai UI Buat Akun
+        // Validasi ketat sesuai ketentuan standar Indonesia
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'no_hp'    => 'required|string|max:15|unique:users,no_hp',
-            'no_ktp'   => 'required|string|max:16|unique:users,no_ktp',
-            'no_sim'   => 'required|string|max:20',
-            'email'    => 'nullable|email|unique:users,email', // Opsional, diisi jika UI nanti ada email
-            'alamat'   => 'nullable|string',                  // Opsional
-            'password' => 'required|string|min:8|confirmed',
+            'name' => ['required', 'string', 'max:255'],
+            
+            // Format WhatsApp Indonesia: diawali 08/628, panjang total 10-13 digit
+            'no_hp' => [
+                'required',
+                'numeric',
+                'regex:/^(08|628)[0-9]{8,11}$/',
+                'unique:users,no_hp'
+            ],
+            
+            // Format NIK KTP Indonesia: Tepat 16 digit angka
+            'no_ktp' => [
+                'required',
+                'numeric',
+                'digits:16',
+                'unique:users,no_ktp'
+            ],
+            
+            // Format Nomor SIM C Indonesia: Tepat 12 digit angka
+            'no_sim' => [
+                'required',
+                'numeric',
+                'digits:12',
+                'unique:users,no_sim'
+            ],
+            
+            'email'    => ['nullable', 'email', 'max:255', 'unique:users,email'],
+            'alamat'   => ['nullable', 'string', 'max:500'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'cf-turnstile-response' => ['required', new TurnstileCheck()],
-        ],
-        [
-        'cf-turnstile-response.required' => 'Verifikasi keamanan wajib diisi.',
-    ]);
+        ], [
+            'name.required'     => 'Nama lengkap wajib diisi.',
+            
+            'no_hp.required'    => 'Nomor WhatsApp wajib diisi.',
+            'no_hp.numeric'     => 'Nomor WhatsApp harus berupa angka.',
+            'no_hp.regex'       => 'Nomor WhatsApp harus diawali 08 atau 628 (total 10-13 digit).',
+            'no_hp.unique'      => 'Nomor WhatsApp ini sudah terdaftar.',
+            
+            'no_ktp.required'   => 'Nomor KTP (NIK) wajib diisi.',
+            'no_ktp.numeric'    => 'Nomor KTP harus berupa angka.',
+            'no_ktp.digits'     => 'Nomor KTP harus berjumlah tepat 16 digit.',
+            'no_ktp.unique'     => 'Nomor KTP ini sudah terdaftar.',
+            
+            'no_sim.required'   => 'Nomor SIM wajib diisi.',
+            'no_sim.numeric'    => 'Nomor SIM harus berupa angka.',
+            'no_sim.digits'     => 'Nomor SIM C harus berjumlah tepat 12 digit.',
+            'no_sim.unique'     => 'Nomor SIM ini sudah terdaftar.',
+            
+            'email.email'       => 'Format email tidak valid.',
+            'email.unique'      => 'Email ini sudah terdaftar.',
+            
+            'password.required'  => 'Password wajib diisi.',
+            'password.min'       => 'Password minimal harus 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            
+            'cf-turnstile-response.required' => 'Verifikasi keamanan wajib diisi.',
+        ]);
 
-        // 2. Buat user baru (Password otomatis di-hash oleh Cast di Model)
+        // Buat user baru (Password otomatis di-hash oleh $casts di Model User)
         $user = User::create([
             'name'     => $validated['name'],
             'no_hp'    => $validated['no_hp'],
@@ -44,10 +89,9 @@ class RegisterController extends Controller
             'role'     => 'customer',
         ]);
 
-        // 3. Auto login setelah registrasi
+        // Auto login setelah registrasi
         Auth::login($user);
 
-        // 4. Redirect ke dashboard/home
-        return redirect('/')->with('success', 'Registrasi berhasil!');
+        return redirect()->route('home')->with('success', 'Registrasi berhasil! Selamat datang di ED.RENT.');
     }
 }

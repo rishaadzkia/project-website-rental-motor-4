@@ -20,7 +20,8 @@ class User extends Authenticatable
         'alamat',
         'password',
         'role', 
-        'avatar'          // ← wajib
+        'avatar',
+        'google_id'          
     ];
 
     protected $hidden = [
