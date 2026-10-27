@@ -69,36 +69,48 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-4">
-        <div class="card border-0 shadow-sm rounded-4 h-100">
-            <div class="card-body p-4">
-                <div class="mb-3">
-                    <h5 class="fw-bold mb-1">Top Orderan</h5>
-                    <p class="text-muted small mb-0">Motor paling sering dipesan</p>
-                </div>
+   <div class="col-xl-4">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+        <div class="card-body p-3 p-md-4">
+            <div class="mb-3">
+                <h5 class="fw-bold mb-1">Top Orderan</h5>
+                <p class="text-muted small mb-0">Motor paling sering dipesan</p>
+            </div>
 
-                @forelse ($topMotorcycles as $index => $motorcycle)
-                    <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
-                        <div class="rounded-circle bg-light text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0" style="width: 38px; height: 38px;">
-                            {{ $index + 1 }}
+            {{-- Bisa digeser horizontal di layar sempit --}}
+            <div class="overflow-auto">
+                <div class="d-flex flex-column" style="min-width: 260px;">
+                    @forelse ($topMotorcycles as $index => $motorcycle)
+                        <div class="d-flex align-items-center gap-3 py-3 {{ !$loop->last ? 'border-bottom' : '' }}">
+                            <div class="rounded-circle bg-light text-primary fw-bold d-flex align-items-center justify-content-center flex-shrink-0" 
+                                 style="width: 36px; height: 36px; font-size: 0.9rem;">
+                                {{ $index + 1 }}
+                            </div>
+
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="fw-semibold text-truncate" style="max-width: 140px;">
+                                    {{ $motorcycle->name }}
+                                </div>
+                                <div class="text-muted small text-truncate">
+                                    {{ $motorcycle->brand }}
+                                </div>
+                            </div>
+
+                            <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary flex-shrink-0">
+                                {{ number_format($motorcycle->orders_count, 0, ',', '.') }} order
+                            </span>
                         </div>
-                        <div class="flex-grow-1 min-w-0">
-                            <div class="fw-semibold text-truncate">{{ $motorcycle->name }}</div>
-                            <div class="text-muted small">{{ $motorcycle->brand }}</div>
+                    @empty
+                        <div class="text-center text-muted py-5">
+                            <i class="bi bi-scooter fs-2 d-block mb-2"></i>
+                            Belum ada orderan.
                         </div>
-                        <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary">
-                            {{ number_format($motorcycle->orders_count, 0, ',', '.') }} order
-                        </span>
-                    </div>
-                @empty
-                    <div class="text-center text-muted py-5">
-                        <i class="bi bi-scooter fs-2 d-block mb-2"></i>
-                        Belum ada orderan.
-                    </div>
-                @endforelse
+                    @endforelse
+                </div>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 <div class="card border-0 shadow-sm rounded-4">

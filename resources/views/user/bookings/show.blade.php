@@ -19,26 +19,32 @@
         <div class="col-lg-7">
             <div class="d-flex flex-column gap-4">
                 
-                <!-- Card 1: Data Pemesan -->
+                <!-- Card 1: Data Pemesan (Selalu Memakai Auth::user() yang Fresh) -->
                 <div class="card border-0 shadow-sm rounded-4 p-4">
                     <h5 class="fw-bold text-dark mb-4">Pemesan</h5>
 
                     <div class="d-flex flex-column gap-3 fs-6">
                         <div class="row">
                             <div class="col-4 text-muted">Nama</div>
-                            <div class="col-8 fw-semibold text-dark">: {{ $booking->user->name ?? '-' }}</div>
+                            <div class="col-8 fw-semibold text-dark">: {{ Auth::user()->name ?? '-' }}</div>
                         </div>
                         <div class="row">
                             <div class="col-4 text-muted">No. Whatsapp</div>
-                            <div class="col-8 fw-semibold text-dark">: {{ $booking->user->no_hp ?? '-' }}</div>
+                            <div class="col-8 fw-semibold {{ empty(Auth::user()->no_hp) ? 'text-danger' : 'text-dark' }}">
+                                : {{ Auth::user()->no_hp ?? '(Belum diisi)' }}
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-4 text-muted">No. KTP</div>
-                            <div class="col-8 fw-semibold text-dark">: {{ $booking->user->no_ktp ?? '-' }}</div>
+                            <div class="col-8 fw-semibold {{ empty(Auth::user()->no_ktp) ? 'text-danger' : 'text-dark' }}">
+                                : {{ Auth::user()->no_ktp ?? '(Belum diisi)' }}
+                            </div>
                         </div>
                         <div class="row">
                             <div class="col-4 text-muted">No. SIM</div>
-                            <div class="col-8 fw-semibold text-dark">: {{ $booking->user->no_sim ?? '-' }}</div>
+                            <div class="col-8 fw-semibold {{ empty(Auth::user()->no_sim) ? 'text-danger' : 'text-dark' }}">
+                                : {{ Auth::user()->no_sim ?? '(Belum diisi)' }}
+                            </div>
                         </div>
                     </div>
 
@@ -245,6 +251,32 @@
 
 </div>
 
+{{-- MODAL PERINGATAN KELENGKAPAN DATA PROFIL --}}
+<div class="modal fade" id="profileIncompleteModal" tabindex="-1" aria-labelledby="profileIncompleteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 border-0 shadow p-3 text-center">
+            <div class="modal-body pt-3 pb-4 px-2">
+                <div class="bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                     style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2 text-warning"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2 fs-5">Lengkapi Data Diri</h5>
+                <p class="text-muted small mb-4">
+                    Demi keamanan sewa, mohon lengkapi <strong>No. WhatsApp, KTP, dan SIM C</strong> kamu terlebih dahulu sebelum membayar.
+                </p>
+                <div class="d-flex flex-column gap-2">
+                    <button type="button" class="btn btn-primary w-100 py-2 rounded-3 fw-semibold small" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#profileModal">
+                        <i class="bi bi-person-lines-fill me-1"></i> Isi Data Sekarang
+                    </button>
+                    <button type="button" class="btn btn-light text-muted w-100 py-2 rounded-3 fw-semibold small" data-bs-dismiss="modal">
+                        Nanti Saja
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- MIDTRANS SCRIPT INTEGRATION -->
 @php
     $isProduction = config('services.midtrans.is_production', env('MIDTRANS_IS_PRODUCTION', false));
@@ -252,6 +284,10 @@
         ? 'https://app.midtrans.com/snap/snap.js' 
         : 'https://app.sandbox.midtrans.com/snap/snap.js';
     $clientKey = config('services.midtrans.client_key', env('MIDTRANS_CLIENT_KEY'));
+
+    // Pengecekan data profil dari Auth::user() yang selalu aktif
+    $user = Auth::user();
+    $isProfileIncomplete = empty($user->no_hp) || empty($user->no_ktp) || empty($user->no_sim);
 @endphp
 
 <script src="{{ $snapUrl }}" data-client-key="{{ $clientKey }}"></script>
@@ -259,6 +295,7 @@
 <script type="text/javascript">
     const basePrice = {{ $subtotalMotor }};
     let currentSnapToken = "{{ $snapToken ?? '' }}";
+    const isProfileIncomplete = {{ $isProfileIncomplete ? 'true' : 'false' }};
 
     function toggleAddressInput() {
         const deliveryRadio = document.getElementById('pickup_delivery');
@@ -309,6 +346,16 @@
         
         if (payButton) {
             payButton.addEventListener('click', async function () {
+                if (isProfileIncomplete) {
+                    const profileModalEl = document.getElementById('profileIncompleteModal');
+                    if (profileModalEl) {
+                        new bootstrap.Modal(profileModalEl).show();
+                    } else {
+                        alert('Mohon lengkapi No. WhatsApp, KTP, dan SIM C kamu di profil terlebih dahulu.');
+                    }
+                    return;
+                }
+
                 const isDelivery = document.getElementById('pickup_delivery')?.checked;
                 const pickupAddress = document.getElementById('pickup_address')?.value;
                 const deliveryFee = document.getElementById('delivery_fee')?.value;
@@ -355,14 +402,12 @@
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '') + "&transaction_status=" + (result.transaction_status || 'settlement'); 
                             },
                             onPending: function(result) { 
-                                // Redirect ke halaman status saat pending
                                 window.location.href = "{{ route('bookings.status', $booking) }}?order_id=" + (result.order_id || '');
                             },
                             onError: function(result) { 
                                 window.location.href = "{{ route('bookings.status', $booking) }}";
                             },
                             onClose: function() { 
-                                // DIUBAH: Saat user close pop-up, langsung alihkan ke halaman status/countdown!
                                 window.location.href = "{{ route('bookings.status', $booking) }}";
                             }
                         });

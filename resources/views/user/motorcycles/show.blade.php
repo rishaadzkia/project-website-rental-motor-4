@@ -1,102 +1,132 @@
-@extends('layouts.app') {{-- sesuaikan dengan layout kamu --}}
+@extends('layouts.app')
+
+@section('title', $motorcycle->name . ' - ED.RENT')
 
 @section('content')
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-10">
-            <div class="card border-0 shadow-lg overflow-hidden">
-                <div class="row g-0">
-                    <!-- Gambar Motor -->
-                    <div class="col-md-6 bg-light d-flex align-items-center justify-content-center p-4">
-                        @if($motorcycle->image)
-                            <img src="{{ asset('storage/' . $motorcycle->image) }}" 
-                                 alt="{{ $motorcycle->name }}" 
-                                 class="img-fluid rounded-3"
-                                 style="max-height: 420px; object-fit: contain;">
-                        @else
-                            <div class="text-center text-muted py-5">
-                                <i class="bi bi-image" style="font-size: 4rem;"></i>
-                                <p class="mt-2">Tidak ada foto</p>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- Detail Motor -->
-                    <div class="col-md-6">
-                        <div class="card-body p-4 p-lg-5">
-                            <!-- Badge Status -->
-                            <div class="mb-3">
-                                @if($motorcycle->status === 'available')
-                                    <span class="badge bg-success rounded-pill px-3 py-2">
-                                        <i class="bi bi-check-circle me-1"></i> Available
-                                    </span>
-                                @elseif($motorcycle->status === 'rented')
-                                    <span class="badge bg-warning text-dark rounded-pill px-3 py-2">
-                                        <i class="bi bi-clock me-1"></i> Sedang Disewa
-                                    </span>
-                                @else
-                                    <span class="badge bg-secondary rounded-pill px-3 py-2">
-                                        <i class="bi bi-tools me-1"></i> Maintenance
-                                    </span>
-                                @endif
-                            </div>
-
-                            <!-- Nama Motor -->
-                            <h2 class="fw-bold mb-1">{{ $motorcycle->name }}</h2>
-                            <p class="text-muted mb-4">{{ $motorcycle->brand }} • {{ $motorcycle->model }}</p>
-
-                            <!-- Info Grid -->
-                            <div class="row g-3 mb-4">
-                                <div class="col-6">
-                                    <div class="bg-light rounded-3 p-3 h-100">
-                                        <small class="text-muted d-block">Tahun</small>
-                                        <span class="fw-semibold">{{ $motorcycle->year }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="bg-light rounded-3 p-3 h-100">
-                                        <small class="text-muted d-block">Plat Nomor</small>
-                                        <span class="fw-semibold">{{ $motorcycle->plate_number }}</span>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="bg-primary bg-opacity-10 rounded-3 p-3">
-                                        <small class="text-muted d-block">Harga Sewa</small>
-                                        <span class="fs-4 fw-bold text-primary">
-                                            Rp {{ number_format($motorcycle->price_per_day, 0, ',', '.') }}
-                                        </span>
-                                        <span class="text-muted">/ hari</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Deskripsi -->
-                            @if($motorcycle->description)
-                                <div class="mb-4">
-                                    <h6 class="fw-semibold mb-2">Deskripsi</h6>
-                                    <p class="text-muted mb-0">{{ $motorcycle->description }}</p>
-                                </div>
-                            @endif
-
-                            <!-- Tombol Aksi -->
-                            <div class="d-grid gap-2 d-md-flex">
-                                <a href="{{ route('motorcycles.index') }}" class="btn btn-outline-secondary">
-                                    <i class="bi bi-arrow-left me-1"></i> Kembali
-                                </a>
-
-                            @if ($motorcycle->status === 'available')
-                                <a href="{{ route('bookings.create', $motorcycle) }}" class="btn btn-primary">
-                                    <i class="bi bi-calendar-check me-1"></i> Booking Motor
-                                </a>
-                            @else
-                                <p>Motor sedang tidak tersedia.</p>
-                            @endif
-                            </div>
+    <div class="row g-4 align-items-stretch">
+        
+        <!-- Kartu Kiri: Foto & Spesifikasi Motor -->
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-4 p-4 h-100 bg-white">
+                <!-- Foto Motor -->
+                <div class="text-center my-auto py-3" style="min-height: 260px;">
+                    @if($motorcycle->image)
+                        <img src="{{ asset('storage/' . $motorcycle->image) }}" 
+                             alt="{{ $motorcycle->name }}" 
+                             class="img-fluid object-fit-contain" 
+                             style="max-height: 280px; width: 100%;">
+                    @else
+                        <div class="bg-light rounded-3 d-flex flex-column align-items-center justify-content-center text-muted py-5" style="height: 260px;">
+                            <i class="bi bi-image fs-1 mb-2"></i>
+                            <span>Tidak ada foto</span>
                         </div>
+                    @endif
+                </div>
+
+                <!-- Spesifikasi Teknis Ringkas -->
+                <div class="pt-3 border-top mt-auto">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Brand</span>
+                        <span class="fw-semibold text-dark small">{{ $motorcycle->brand }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Tipe</span>
+                        <span class="fw-semibold text-dark small">{{ $motorcycle->model }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted small">Kapasitas Tangki</span>
+                        <span class="fw-semibold text-dark small">{{ $motorcycle->tank_capacity ? $motorcycle->tank_capacity . ' L' : '-' }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted small">No. Plat</span>
+                        <span class="fw-semibold text-dark small">{{ $motorcycle->plate_number }}</span>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Kartu Kanan: Deskripsi, Perlengkapan, & Harga -->
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5 h-100 bg-white d-flex flex-column justify-content-between">
+                <div>
+                    <!-- Nama Motor -->
+                    <h2 class="fw-bold text-dark mb-2">{{ $motorcycle->name }}</h2>
+
+                    <!-- Status Ketersediaan -->
+                    <div class="mb-4">
+                        @if($motorcycle->status === 'available')
+                            <span class="small fw-semibold text-success d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Tersedia
+                            </span>
+                        @elseif($motorcycle->status === 'rented')
+                            <span class="small fw-semibold text-warning d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Sedang Disewa
+                            </span>
+                        @else
+                            <span class="small fw-semibold text-secondary d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i> Maintenance
+                            </span>
+                        @endif
+                    </div>
+
+                    <!-- Deskripsi Motor -->
+                    <p class="text-secondary small lh-lg mb-4">
+                        {{ $motorcycle->description ?? 'Motor bebek yang terkenal sangat irit bahan bakar dan tangguh. ' . $motorcycle->name . ' adalah pilihan ideal untuk Anda yang mencari kendaraan praktis, lincah, dan handal untuk mobilitas sehari-hari. Mesin yang responsif dan mudah dikendalikan, sangat cocok untuk menjelajahi jalanan padat perkotaan atau perjalanan jarak dekat dengan efisiensi maksimal.' }}
+                    </p>
+
+                    <hr class="text-border opacity-25 my-4">
+
+                    <!-- Perlengkapan Included -->
+                    <div class="mb-4">
+                        <h6 class="text-primary small fw-medium mb-3">Perlengkapan:</h6>
+                        <div class="row g-2 text-secondary small">
+                            <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                                <i class="bi bi-dot fs-5 text-secondary"></i> Bensin 1 liter
+                            </div>
+                            <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                                <i class="bi bi-dot fs-5 text-secondary"></i> Jas hujan 1 buah
+                            </div>
+                            
+                            <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                                <i class="bi bi-dot fs-5 text-secondary"></i> Helm SNI 1 buah
+                            </div>
+                            <div class="col-6 col-md-4 d-flex align-items-center gap-2">
+                                <i class="bi bi-dot fs-5 text-secondary"></i> STNK
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Kartu: Harga & Tombol Aksi -->
+                <div class="d-flex justify-content-between align-items-end pt-3 mt-auto">
+                    <div>
+                        <span class="fs-3 fw-bold text-dark">
+                            Rp{{ number_format($motorcycle->price_per_day, 0, ',', '.') }}
+                        </span>
+                        <span class="text-muted small">/ hari</span>
+                    </div> 
+
+                    <div>
+                        {{-- HANYA TAMPILKAN TOMBOL BOOKING UNTUK PELANGGAN / GUEST (BUKAN ADMIN) --}}
+                        @unless (Auth::check() && (Auth::user()->is_admin || (Auth::user()->role ?? '') === 'admin'))
+                            @if ($motorcycle->status === 'available')
+                                <a href="{{ route('bookings.create', $motorcycle) }}" class="btn btn-primary px-4 py-2 rounded-3 fw-medium">
+                                    Booking
+                                </a> 
+                            @else
+                                <button class="btn btn-secondary px-4 py-2 rounded-3 fw-medium" disabled>
+                                    Tidak Tersedia
+                                </button>
+                            @endif 
+                        @endunless
+                    </div>
+                </div> 
+            
+            </div>
+        </div>
+
     </div>
 </div>
 @endsection

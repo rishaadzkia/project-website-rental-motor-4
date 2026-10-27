@@ -3,19 +3,19 @@
 @section('title', 'Detail Booking')
 
 @section('content')
-<div class="container-fluid booking-detail-page py-4">
+<div class="container-fluid booking-detail-page py-3 py-md-4">
 
     {{-- ==================== HEADER ==================== --}}
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3 mb-4">
         <div class="d-flex align-items-center gap-3">
             <a href="{{ route('admin.bookings.index') }}"
-               class="btn btn-light border d-flex align-items-center justify-content-center rounded-circle shadow-sm"
+               class="btn btn-light border d-flex align-items-center justify-content-center rounded-circle shadow-sm flex-shrink-0"
                style="width: 40px; height: 40px;"
                title="Kembali">
                 <i class="fas fa-arrow-left text-secondary"></i>
             </a>
             <div>
-                <h4 class="fw-bold text-dark mb-0">
+                <h4 class="fw-bold text-dark mb-0 fs-5 fs-md-4">
                     #{{ ltrim($booking->booking_code ?? 'RENT-' . date('Ym') . '-' . str_pad($booking->id, 3, '0', STR_PAD_LEFT), '#') }}
                 </h4>
                 <small class="text-muted">
@@ -24,34 +24,29 @@
             </div>
         </div>
 
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            {{-- Status Badges --}}
-            {{-- Badge Status Utama (satu-satunya) --}}
-@php
-    $statusClasses = [
-        'pending'   => 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning',
-        'confirmed' => 'bg-info bg-opacity-10 text-info border border-info',
-        'ongoing'   => 'bg-primary bg-opacity-10 text-primary border border-primary',
-        'completed' => 'bg-success bg-opacity-10 text-success border border-success',
-        'cancelled' => 'bg-secondary bg-opacity-10 text-secondary border border-secondary',
-    ];
+        <div class="d-flex flex-wrap align-items-center gap-2 w-100 w-md-auto">
+            @php
+                $statusClasses = [
+                    'pending'   => 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning',
+                    'confirmed' => 'bg-info bg-opacity-10 text-info border border-info',
+                    'ongoing'   => 'bg-primary bg-opacity-10 text-primary border border-primary',
+                    'completed' => 'bg-success bg-opacity-10 text-success border border-success',
+                    'cancelled' => 'bg-secondary bg-opacity-10 text-secondary border border-secondary',
+                ];
 
-    $statusLabels = [
-        'pending'   => 'Menunggu pembayaran',
-        'confirmed' => 'Siap ambil / diantar',
-        'ongoing'   => 'Sedang disewa',
-        'completed' => 'Selesai',
-        'cancelled' => 'Batal',
-    ];
-@endphp
+                $statusLabels = [
+                    'pending'   => 'Menunggu pembayaran',
+                    'confirmed' => 'Siap ambil / diantar',
+                    'ongoing'   => 'Sedang disewa',
+                    'completed' => 'Selesai',
+                    'cancelled' => 'Batal',
+                ];
+            @endphp
 
-<span class="badge rounded-pill px-3 py-2 fw-medium {{ $statusClasses[$booking->status] ?? 'bg-light text-dark border' }}">
-    {{ $statusLabels[$booking->status] ?? ucfirst($booking->status) }}
-</span>
+            <span class="badge rounded-pill px-3 py-2 fw-medium {{ $statusClasses[$booking->status] ?? 'bg-light text-dark border' }}">
+                {{ $statusLabels[$booking->status] ?? ucfirst($booking->status) }}
+            </span>
 
-            
-
-            {{-- Cetak Dokumen --}}
             <div class="dropdown">
                 <button class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 fw-semibold" type="button" data-bs-toggle="dropdown">
                     <i class="fas fa-print me-1"></i> Cetak dokumen
@@ -79,16 +74,16 @@
         </div>
     @endif
 
-    <div class="row g-4">
+    <div class="row g-3 g-lg-4">
         {{-- ==================== KOLOM KIRI ==================== --}}
         <div class="col-lg-8">
 
             {{-- 1. Presisi Waktu & Serah Terima --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4">
                     <h6 class="fw-bold text-dark mb-3">
                         <i class="fas fa-clock text-primary me-2"></i>Presisi waktu & serah terima
-                        <small class="text-muted fw-normal ms-1">Jadwal rencana versus realisasi di lapangan</small>
+                        <small class="text-muted fw-normal d-none d-sm-inline ms-1">Jadwal rencana versus realisasi di lapangan</small>
                     </h6>
 
                     @php
@@ -98,12 +93,13 @@
                         $returnTimeVal = $booking->return_time ?? $booking->end_time ?? '00:00:00';
                         $startString   = $startDateOnly ? ($startDateOnly . ' ' . $pickupTimeVal) : null;
                         $endString     = $endDateOnly ? ($endDateOnly . ' ' . $returnTimeVal) : null;
+                        $isDelivery    = ($booking->pickup_method ?? 'pool') === 'delivery';
                     @endphp
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
+                    <div class="row g-3 mb-3 mb-md-4">
+                        <div class="col-12 col-sm-6">
                             <div class="p-3 bg-light rounded-3 h-100">
-                                <div class="text-muted small mb-1">Pickup rencana</div>
+                                <div class="text-muted small mb-1">{{ $isDelivery ? 'Delivery rencana' : 'Pickup rencana' }}</div>
                                 <div class="fw-semibold text-dark">
                                     @if($startString)
                                         {{ \Carbon\Carbon::parse($startString)->translatedFormat('l, d F Y') }}
@@ -115,7 +111,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-sm-6">
                             <div class="p-3 bg-light rounded-3 h-100 position-relative">
                                 <div class="text-muted small mb-1">Pengembalian rencana</div>
                                 <div class="fw-semibold text-dark">
@@ -136,39 +132,39 @@
 
                     {{-- Actual Pickup / Return --}}
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex flex-column gap-2">
-                                <span class="text-muted small">Actual pickup</span>
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <span class="bg-white border rounded-3 px-3 py-2 small text-muted">
+                                <span class="text-muted small">{{ $isDelivery ? 'Actual penyerahan' : 'Actual pickup' }}</span>
+                                <div class="d-flex flex-column flex-sm-row flex-wrap align-items-stretch align-items-sm-center gap-2">
+                                    <span class="bg-white border rounded-3 px-3 py-2 small text-muted flex-grow-1">
                                         {{ $booking->actual_pickup ? \Carbon\Carbon::parse($booking->actual_pickup)->translatedFormat('d M Y, H.i') . ' WIB' : 'Belum diserahkan' }}
                                     </span>
                                     @if(!$booking->actual_pickup)
-                                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST">
+                                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST" class="flex-shrink-0">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="action_type" value="record_pickup">
-                                            <button type="submit" class="btn btn-primary btn-sm rounded-3 px-3 py-2 fw-semibold">
-                                                Catat pickup sekarang
+                                            <button type="submit" class="btn btn-primary btn-sm rounded-3 px-3 py-2 fw-semibold w-100 w-sm-auto">
+                                                {{ $isDelivery ? 'Catat penyerahan' : 'Catat pickup' }}
                                             </button>
                                         </form>
                                     @endif
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-12 col-md-6">
                             <div class="d-flex flex-column gap-2">
                                 <span class="text-muted small">Actual return</span>
-                                <div class="d-flex flex-wrap align-items-center gap-2">
-                                    <span class="bg-white border rounded-3 px-3 py-2 small text-muted">
+                                <div class="d-flex flex-column flex-sm-row flex-wrap align-items-stretch align-items-sm-center gap-2">
+                                    <span class="bg-white border rounded-3 px-3 py-2 small text-muted flex-grow-1">
                                         {{ $booking->actual_return ? \Carbon\Carbon::parse($booking->actual_return)->translatedFormat('d M Y, H.i') . ' WIB' : 'Belum dikembalikan' }}
                                     </span>
                                     @if(!$booking->actual_return && $booking->actual_pickup)
-                                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST">
+                                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST" class="flex-shrink-0">
                                             @csrf
                                             @method('PUT')
                                             <input type="hidden" name="action_type" value="record_return">
-                                            <button type="submit" class="btn btn-outline-primary btn-sm rounded-3 px-3 py-2 fw-semibold">
+                                            <button type="submit" class="btn btn-outline-primary btn-sm rounded-3 px-3 py-2 fw-semibold w-100 w-sm-auto">
                                                 Catat pengembalian
                                             </button>
                                         </form>
@@ -181,101 +177,102 @@
             </div>
 
             {{-- 2. Identitas & Verifikasi --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <h6 class="fw-bold text-dark mb-0">
-                                <i class="fas fa-id-card text-primary me-2"></i>Identitas & verifikasi fisik
-                            </h6>
-                            <span class="badge rounded-pill px-2 py-1 small {{ ($booking->is_verified ?? false) ? 'bg-success bg-opacity-10 text-success border border-success' : 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning' }}">
-                                {{ ($booking->is_verified ?? false) ? 'Terverifikasi' : 'Belum verifikasi' }}
-                            </span>
-                        </div>
-
-                        @if(optional($booking->user)->no_hp)
-                            @php
-                                $phone = preg_replace('/[^0-9]/', '', $booking->user->no_hp);
-                                if (str_starts_with($phone, '0')) {
-                                    $phone = '62' . substr($phone, 1);
-                                }
-                            @endphp
-                            <a href="https://wa.me/{{ $phone }}?text=Halo%20{{ urlencode($booking->user->name) }},%20mengenai%20pesanan%20sewa%20motor%20{{ urlencode($booking->booking_code ?? '') }}"
-                               target="_blank"
-                               class="btn btn-outline-success btn-sm rounded-pill px-3 py-2 fw-semibold">
-                                <i class="fab fa-whatsapp me-1"></i> Chat WhatsApp
-                            </a>
-                        @endif
-                    </div>
-
-                    <p class="text-muted small mb-3">Cocokkan dokumen fisik customer dengan data sistem</p>
-
-                    <div class="row g-3 mb-4">
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small">Nama customer</div>
-                            <div class="fw-semibold text-dark">{{ optional($booking->user)->name ?? '-' }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small">No. KTP</div>
-                            <div class="fw-semibold text-dark">{{ $booking->no_ktp ?? optional($booking->user)->no_ktp ?? '-' }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small">No. SIM C</div>
-                            <div class="fw-semibold text-dark">{{ $booking->no_sim ?? optional($booking->user)->no_sim ?? '-' }}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="text-muted small">No. WhatsApp</div>
-                            <div class="fw-semibold text-dark">{{ optional($booking->user)->no_hp ?? '-' }}</div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pt-3 border-top">
-                        <div>
-                            <div class="text-muted small mb-1">Jaminan di lapangan</div>
-                            <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fw-medium">
-                                <i class="fas fa-shield-alt me-1 text-warning-emphasis"></i>
-                                {{ $booking->physical_deposit ?? 'E-KTP asli / Paspor / Motor pribadi' }}
-                            </span>
-                        </div>
-
-                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <input type="hidden" name="action_type" value="toggle_verification">
-                            @if($booking->is_verified ?? false)
-                                <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 px-3 py-2 fw-semibold">
-                                    <i class="fas fa-times me-1"></i> Batalkan verifikasi
-                                </button>
-                            @else
-                                <button type="submit" class="btn btn-primary btn-sm rounded-3 px-3 py-2 fw-semibold">
-                                    <i class="fas fa-check me-1"></i> Tandai terverifikasi fisik
-                                </button>
-                            @endif
-                        </form>
-                    </div>
-                </div>
+<div class="card border-0 shadow-sm rounded-4 mb-3 mb-md-4">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex flex-column flex-sm-row flex-wrap justify-content-between align-items-start align-items-sm-center gap-2 mb-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="fas fa-id-card text-primary me-2"></i>Identitas & verifikasi fisik
+                </h6>
+                <span class="badge rounded-pill px-2 py-1 small {{ ($booking->is_verified ?? false) ? 'bg-success bg-opacity-10 text-success border border-success' : 'bg-warning bg-opacity-10 text-warning-emphasis border border-warning' }}">
+                    {{ ($booking->is_verified ?? false) ? 'Terverifikasi' : 'Belum verifikasi' }}
+                </span>
             </div>
 
+            @if(optional($booking->user)->no_hp)
+                @php
+                    $phone = preg_replace('/[^0-9]/', '', $booking->user->no_hp);
+                    if (str_starts_with($phone, '0')) {
+                        $phone = '62' . substr($phone, 1);
+                    }
+                @endphp
+                <a href="https://wa.me/{{ $phone }}?text=Halo%20{{ urlencode($booking->user->name) }},%20mengenai%20pesanan%20sewa%20motor%20{{ urlencode($booking->booking_code ?? '') }}"
+                   target="_blank"
+                   class="btn btn-outline-success btn-sm rounded-pill px-3 py-2 fw-semibold">
+                    <i class="fab fa-whatsapp me-1"></i> Chat WhatsApp
+                </a>
+            @endif
+        </div>
+
+        <p class="text-muted small mb-3">Cocokkan dokumen fisik customer dengan data sistem</p>
+
+        {{-- Data identitas - stack rapi di mobile --}}
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-sm-6 col-md-3">
+                <div class="text-muted small">Nama customer</div>
+                <div class="fw-semibold text-dark text-break">{{ optional($booking->user)->name ?? '-' }}</div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <div class="text-muted small">No. KTP</div>
+                <div class="fw-semibold text-dark text-break">{{ $booking->no_ktp ?? optional($booking->user)->no_ktp ?? '-' }}</div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <div class="text-muted small">No. SIM C</div>
+                <div class="fw-semibold text-dark text-break">{{ $booking->no_sim ?? optional($booking->user)->no_sim ?? '-' }}</div>
+            </div>
+            <div class="col-12 col-sm-6 col-md-3">
+                <div class="text-muted small">No. WhatsApp</div>
+                <div class="fw-semibold text-dark text-break">{{ optional($booking->user)->no_hp ?? '-' }}</div>
+            </div>
+        </div>
+
+        <div class="d-flex flex-column flex-sm-row flex-wrap justify-content-between align-items-start align-items-sm-center gap-3 pt-3 border-top">
+            <div class="w-100 w-sm-auto">
+                <div class="text-muted small mb-1">Jaminan di lapangan</div>
+                <span class="badge bg-light text-dark border rounded-pill px-3 py-2 fw-medium text-wrap text-start" style="white-space: normal; max-width: 100%;">
+                    <i class="fas fa-shield-alt me-1 text-warning-emphasis"></i>
+                    {{ $booking->physical_deposit ?? 'E-KTP asli / Paspor / Motor pribadi' }}
+                </span>
+            </div>
+
+            <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST" class="w-100 w-sm-auto">
+                @csrf
+                @method('PUT')
+                <input type="hidden" name="action_type" value="toggle_verification">
+                @if($booking->is_verified ?? false)
+                    <button type="submit" class="btn btn-outline-danger btn-sm rounded-3 px-3 py-2 fw-semibold w-100">
+                        <i class="fas fa-times me-1"></i> Batalkan verifikasi
+                    </button>
+                @else
+                    <button type="submit" class="btn btn-primary btn-sm rounded-3 px-3 py-2 fw-semibold w-100">
+                        <i class="fas fa-check me-1"></i> Tandai terverifikasi fisik
+                    </button>
+                @endif
+            </form>
+        </div>
+    </div>
+</div>
+
             {{-- 3. Data Kendaraan & Driver --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4">
                     <h6 class="fw-bold text-dark mb-3">
-                        <i class="fas fa-motorcycle text-primary me-2"></i>Data kendaraan & penugasan staf
+                        <i class="fas fa-motorcycle text-primary me-2"></i>Data kendaraan & pengantar
                     </h6>
 
                     <div class="text-muted small mb-3">
-                        {{ ($booking->pickup_method ?? 'pool') === 'delivery' ? 'Delivery – Diantar jemput' : 'Pool pickup – Ambil sendiri' }}
+                        {{ $isDelivery ? 'Delivery – Diantar jemput ke lokasi' : 'Pool pickup – Ambil langsung di tempat' }}
                     </div>
 
-                    <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
+                    <div class="d-flex flex-column flex-sm-row align-items-center gap-3 mb-4 p-3 bg-light rounded-3">
                         <img src="{{ optional($booking->motorcycle)->image ? asset('storage/' . $booking->motorcycle->image) : asset('images/default-motor.png') }}"
                              alt="{{ optional($booking->motorcycle)->name ?? 'Motor' }}"
-                             class="rounded-3 object-fit-cover bg-white"
-                             style="width: 100px; height: 70px; object-fit: contain;">
-                        <div>
+                             class="rounded-3 object-fit-cover bg-white flex-shrink-0"
+                             style="width: 110px; height: 80px; object-fit: contain;">
+                        <div class="text-center text-sm-start">
                             <div class="text-muted small text-uppercase">{{ optional($booking->motorcycle)->brand ?? '' }}</div>
                             <h6 class="fw-bold text-dark mb-1">{{ optional($booking->motorcycle)->name ?? 'Nama Motor' }}</h6>
-                            <div class="d-flex flex-wrap gap-1">
+                            <div class="d-flex flex-wrap justify-content-center justify-content-sm-start gap-1">
                                 <span class="badge bg-dark text-white rounded-pill px-2">
                                     {{ optional($booking->motorcycle)->plate_number ?? 'Belum diatur' }}
                                 </span>
@@ -286,34 +283,35 @@
                         </div>
                     </div>
 
-                    {{-- Form Driver --}}
-                    <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <input type="hidden" name="action_type" value="update_driver">
+                    @if($isDelivery)
+                        <form action="{{ route('admin.bookings.update', $booking->id) }}" method="POST">
+                            @csrf
+                            @method('PUT')
+                            <input type="hidden" name="action_type" value="update_driver">
 
-                        <div class="row g-3 align-items-end">
-                            <div class="col-md-5">
-                                <label class="form-label text-muted small mb-1">Nama driver / staf bertugas</label>
-                                <input type="text" name="driver_name" class="form-control form-control-sm rounded-3"
-                                       value="{{ $booking->driver_name ?? '' }}" placeholder="Contoh: Budi (Kurir)">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-12 col-sm-5">
+                                    <label class="form-label text-muted small mb-1">Nama kurir / pengantar</label>
+                                    <input type="text" name="driver_name" class="form-control form-control-sm rounded-3"
+                                           value="{{ $booking->driver_name ?? '' }}" placeholder="Contoh: Budi (Kurir)">
+                                </div>
+                                <div class="col-12 col-sm-5">
+                                    <label class="form-label text-muted small mb-1">No. HP kurir</label>
+                                    <input type="text" name="driver_phone" class="form-control form-control-sm rounded-3"
+                                           value="{{ $booking->driver_phone ?? '' }}" placeholder="08123456789">
+                                </div>
+                                <div class="col-12 col-sm-2">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100 rounded-3 py-2 fw-semibold">
+                                        <i class="fas fa-save me-1"></i> Simpan
+                                    </button>
+                                </div>
                             </div>
-                            <div class="col-md-5">
-                                <label class="form-label text-muted small mb-1">No. HP driver</label>
-                                <input type="text" name="driver_phone" class="form-control form-control-sm rounded-3"
-                                       value="{{ $booking->driver_phone ?? '' }}" placeholder="08123456789">
-                            </div>
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary btn-sm w-100 rounded-3 py-2 fw-semibold">
-                                    <i class="fas fa-save me-1"></i> Simpan
-                                </button>
-                            </div>
-                        </div>
-                    </form>
+                        </form>
+                    @endif
 
-                    @if(($booking->pickup_method ?? '') === 'delivery' && $booking->pickup_address)
+                    @if($isDelivery && $booking->pickup_address)
                         <div class="mt-3 p-3 bg-light rounded-3">
-                            <div class="text-muted small mb-1">Alamat antar / jemput</div>
+                            <div class="text-muted small mb-1">Alamat pengantaran / penjemputan</div>
                             <div class="fw-medium text-dark">{{ $booking->pickup_address }}</div>
                         </div>
                     @endif
@@ -321,8 +319,8 @@
             </div>
 
             {{-- 4. Catatan Internal --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4">
                     <h6 class="fw-bold text-dark mb-1">
                         <i class="fas fa-sticky-note text-primary me-2"></i>Catatan internal admin
                     </h6>
@@ -349,35 +347,35 @@
         <div class="col-lg-4">
 
             {{-- Rincian Keuangan --}}
-            <div class="card border-0 shadow-sm rounded-4 mb-4">
-                <div class="card-body p-4">
+            <div class="card border-0 shadow-sm rounded-4 mb-3 mb-md-4">
+                <div class="card-body p-3 p-md-4">
                     <h6 class="fw-bold text-dark mb-3">
                         <i class="fas fa-wallet text-primary me-2"></i>Rincian keuangan
                     </h6>
 
                     <div class="d-flex justify-content-between mb-2 small">
                         <span class="text-muted">Sewa motor ({{ $booking->total_days ?? 1 }} hari)</span>
-                        <span class="fw-medium">Rp {{ number_format($booking->rental_fee ?? ($booking->total_price ?? 0), 0, ',', '.') }}</span>
+                        <span class="fw-medium text-nowrap">Rp {{ number_format($booking->rental_fee ?? ($booking->total_price ?? 0), 0, ',', '.') }}</span>
                     </div>
 
-                    @if(($booking->pickup_method ?? '') === 'delivery')
+                    @if($isDelivery)
                         <div class="d-flex justify-content-between mb-2 small">
                             <span class="text-muted">Ongkir / Delivery</span>
-                            <span class="fw-medium">Rp {{ number_format($booking->delivery_fee ?? 0, 0, ',', '.') }}</span>
+                            <span class="fw-medium text-nowrap">Rp {{ number_format($booking->delivery_fee ?? 0, 0, ',', '.') }}</span>
                         </div>
                     @endif
 
                     @if(($booking->addons_fee ?? 0) > 0)
                         <div class="d-flex justify-content-between mb-2 small">
                             <span class="text-muted">Add-ons</span>
-                            <span class="fw-medium">Rp {{ number_format($booking->addons_fee, 0, ',', '.') }}</span>
+                            <span class="fw-medium text-nowrap">Rp {{ number_format($booking->addons_fee, 0, ',', '.') }}</span>
                         </div>
                     @endif
 
                     @if(($booking->penalty_fee ?? 0) > 0)
                         <div class="d-flex justify-content-between mb-2 small text-danger">
                             <span>Denda keterlambatan</span>
-                            <span class="fw-medium">Rp {{ number_format($booking->penalty_fee, 0, ',', '.') }}</span>
+                            <span class="fw-medium text-nowrap">Rp {{ number_format($booking->penalty_fee, 0, ',', '.') }}</span>
                         </div>
                     @endif
 
@@ -385,7 +383,7 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="fw-bold">Total nominal</span>
-                        <span class="fw-bold text-primary fs-5">
+                        <span class="fw-bold text-primary fs-5 text-nowrap">
                             Rp {{ number_format($booking->grand_total ?? $booking->total_price ?? 0, 0, ',', '.') }}
                         </span>
                     </div>
@@ -418,7 +416,7 @@
 
             {{-- Eksekusi Status --}}
             <div class="card border-0 shadow-sm rounded-4">
-                <div class="card-body p-4">
+                <div class="card-body p-3 p-md-4">
                     <h6 class="fw-bold text-dark mb-3">
                         <i class="fas fa-bolt text-primary me-2"></i>Eksekusi status
                     </h6>

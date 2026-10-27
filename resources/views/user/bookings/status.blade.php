@@ -21,7 +21,7 @@
                     Selamat, kamu berhasil booking motornya! Cek status transaksimu dan chat admin untuk konfirmasi pengambilan motor!
                 </p>
 
-                @php
+                @php 
                     $nomorAdmin = '6288905604619';
                     $method = strtolower($booking->pickup_method ?? 'pool');
 
@@ -70,7 +70,7 @@
                     <h2 class="fw-bold text-dark display-6 mb-1" id="countdown-display">00m : 00d</h2>
                     <p class="text-danger fw-semibold small mb-2">Selesaikan Pembayaranmu Sebelum Waktunya Habis</p>
                     <p class="text-secondary small mx-auto" style="max-width: 460px;">
-                        Tinggal selangkah lagi kamu bisa bawa motor keliling! Selesaikan transaksimu sekarang. Jika ada kendala, jangan ragu hubungi admin kami.
+                        Tinggal selangkah lagi kamu bisa bawa motor keliling! Selesaikan transaksimu sekarang sebelum motor disewa ke penyewa lain.
                     </p>
                 </div>
 

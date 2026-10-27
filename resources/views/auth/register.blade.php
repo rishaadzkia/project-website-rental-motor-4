@@ -11,12 +11,12 @@
 <div class="container-fluid p-0 min-vh-100 d-flex align-items-center bg-light">
     <div class="row g-0 w-100 min-vh-100">
         
-        <!-- Kolom Kiri: Banner Hero Gambar -->
+        <!-- Kolom Kiri: Banner Hero Gambar (Desktop) -->
         <div class="col-lg-6 d-none d-lg-block position-relative bg-dark">
             <img src="{{ asset('images/hero-rental.jpg') }}" alt="ED.RENT Banner" class="w-100 h-100 object-fit-cover opacity-75">
             
             <div class="position-absolute top-0 start-0 p-5 text-white d-flex flex-column justify-content-between h-100" style="z-index: 2;">
-                <!-- Brand Logo -->
+                <!-- Brand Logo Desktop -->
                 <a href="{{ route('home') }}" class="text-white text-decoration-none fw-bold fs-4 tracking-wider">
                     ED.RENT
                 </a>
@@ -37,6 +37,13 @@
         <div class="col-lg-6 d-flex align-items-center justify-content-center p-4 p-sm-5 bg-white">
             <div class="w-100" style="max-width: 420px;">
                 
+                <!-- Brand Logo (Warna Putih untuk Dark Mode & Mengarah ke Beranda) -->
+                <div class="mb-4">
+                    <a href="{{ route('home') }}" class="text-white text-decoration-none fw-bold fs-3 tracking-wider d-inline-block">
+                        ED.RENT
+                    </a>
+                </div>
+
                 <!-- Header / Title -->
                 <div class="mb-4">
                     <h2 class="fw-bold text-dark h3 mb-2">Buat Akun</h2>
@@ -137,7 +144,7 @@
                 </div>
 
                 <!-- Tombol Google -->
-                <a href="#" class="btn btn-outline-light text-dark w-100 rounded-3 border py-2-5 d-flex align-items-center justify-content-center gap-2 mb-4">
+                <a href="{{ route('auth.google') }}" class="btn btn-outline-light text-dark w-100 rounded-3 border py-2-5 d-flex align-items-center justify-content-center gap-2 mb-4">
                     <svg width="18" height="18" viewBox="0 0 24 24">
                         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -160,7 +167,6 @@
 <!-- JS untuk Show/Hide Password & Auto-hide Error -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Toggle Password Visibility
         const setupToggle = (inputId, iconId) => {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
@@ -177,7 +183,6 @@
         setupToggle('password', 'togglePassword');
         setupToggle('password_confirmation', 'togglePasswordConfirm');
 
-        // Remove error class on typing
         const inputs = document.querySelectorAll('input');
         inputs.forEach(input => {
             input.addEventListener('input', function () {
