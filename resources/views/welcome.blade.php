@@ -186,20 +186,65 @@
         padding: 1.75rem 2rem; 
     }
     .terms-box ol {
-        padding-left: 1.25rem;
+        display: grid;
+        gap: 0.65rem;
+        list-style: none;
+        padding-left: 0;
         margin: 0;
     }
     .terms-box li {
         color: #cbd5e1;
         font-size: 0.9rem;
         line-height: 1.65;
-        margin-bottom: 0.9rem;
+        margin: 0;
+        padding: 0.8rem 1rem;
+        background: rgba(15, 23, 42, 0.42);
+        border: 1px solid rgba(71, 85, 105, 0.65);
+        border-radius: 0.7rem;
     }
     .terms-box li:last-child {
         margin-bottom: 0;
     }
     .terms-box strong {
         color: #f1f5f9;
+    }
+
+    /* ========== FAQ ========== */
+    .faq-list {
+        display: grid;
+        gap: 0.75rem;
+    }
+    .faq-item {
+        overflow: hidden;
+        background: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 0.85rem;
+    }
+    .faq-question {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        color: #f1f5f9;
+        background: transparent;
+        border: 0;
+        text-align: left;
+        font-weight: 600;
+    }
+    .faq-question i {
+        color: #94a3b8;
+        transition: transform 0.2s ease;
+    }
+    .faq-question[aria-expanded="true"] i {
+        transform: rotate(180deg);
+    }
+    .faq-answer {
+        padding: 0 1.25rem 1rem;
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        line-height: 1.65;
     }
 
     .link-all {
@@ -392,6 +437,56 @@
                     Apabila pembayaran telah selesai dan kendaraan yang dipesan tidak tersedia, penyewa <strong>berhak memilih kendaraan lain</strong> yang tersedia tanpa dikenakan biaya tambahan.
                 </li>
             </ol>
+        </div>
+    </section>
+
+    {{-- 5. FAQ --}}
+    <section class="mb-5" aria-labelledby="faq-title">
+        <div class="mb-4">
+            <h3 class="section-title" id="faq-title">Pertanyaan yang Sering Diajukan</h3>
+            <p class="section-subtitle">Informasi singkat untuk membantu proses penyewaan Anda.</p>
+        </div>
+
+        <div class="faq-list">
+            <div class="faq-item">
+                <button class="faq-question" type="button" data-bs-toggle="collapse" data-bs-target="#faq-booking" aria-expanded="false" aria-controls="faq-booking">
+                    Bagaimana cara memesan motor?
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="collapse" id="faq-booking">
+                    <div class="faq-answer">Pilih motor yang tersedia, tekan tombol Booking, lalu lengkapi informasi tanggal dan kebutuhan pengambilan. Pemesanan dilakukan minimal 1×24 jam sebelum waktu penggunaan.</div>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" type="button" data-bs-toggle="collapse" data-bs-target="#faq-documents" aria-expanded="false" aria-controls="faq-documents">
+                    Dokumen apa yang perlu disiapkan?
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="collapse" id="faq-documents">
+                    <div class="faq-answer">Siapkan 2 kartu identitas (SIM A, KK, KTP, ID Kerja, atau ID Pelajar), serta akun media sosial dan nomor WhatsApp yang aktif. Data akan diperiksa saat serah terima kendaraan.</div>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" type="button" data-bs-toggle="collapse" data-bs-target="#faq-pickup" aria-expanded="false" aria-controls="faq-pickup">
+                    Bagaimana cara mengambil motor setelah memesan?
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="collapse" id="faq-pickup">
+                    <div class="faq-answer">Setelah pesanan dikonfirmasi, hubungi pihak rental melalui WhatsApp untuk mengonfirmasi pengambilan, atau datang langsung ke lokasi ED.RENT.</div>
+                </div>
+            </div>
+
+            <div class="faq-item">
+                <button class="faq-question" type="button" data-bs-toggle="collapse" data-bs-target="#faq-unavailable" aria-expanded="false" aria-controls="faq-unavailable">
+                    Bagaimana jika motor yang dipesan tidak tersedia?
+                    <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                </button>
+                <div class="collapse" id="faq-unavailable">
+                    <div class="faq-answer">Jika pembayaran sudah selesai tetapi motor tidak tersedia, Anda berhak memilih motor lain yang tersedia tanpa biaya tambahan.</div>
+                </div>
+            </div>
         </div>
     </section>
 
