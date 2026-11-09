@@ -456,7 +456,7 @@
 </div>
 
 <!-- Modal Success -->
-@if(session('success') && !session('warning_upcoming_bookings'))
+@if(session('success'))
 <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 p-3 shadow">
@@ -644,7 +644,7 @@
             createModal.show();
         @endif
 
-        @if (session('success') && !session('warning_upcoming_bookings'))
+        @if (session('success'))
             var successModal = new bootstrap.Modal(document.getElementById('successModal'));
             successModal.show();
         @endif
