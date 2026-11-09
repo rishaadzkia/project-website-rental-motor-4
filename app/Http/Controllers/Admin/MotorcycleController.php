@@ -146,7 +146,7 @@ class MotorcycleController extends Controller
             return redirect()
                 ->route('admin.motorcycles.index')
                 ->with('warning_upcoming_bookings', $upcomingBookings)
-                ->with('success', 'Motor diset ke Pending Perawatan. Diberikan batas waktu 2 hari untuk konfirmasi pelanggan.');
+                ->with('success', 'Motor diset ke Pending Status. Diberikan waktu untuk konfirmasi pelanggan.');
         }
 
         return redirect()
@@ -159,7 +159,7 @@ class MotorcycleController extends Controller
         $today = Carbon::today()->toDateString();
         $activeStatuses = ['confirmed', 'paid', 'approved', 'active', 'ongoing', 'terkonfirmasi'];
 
-        // Ambil data pemesanan aktif atau di masa mendatang milik motor ini
+        // 1. Deteksi pemesanan aktif atau di masa mendatang milik motor ini
         $activeBookings = $motorcycle->bookings()
             ->with('user')
             ->whereIn('status', $activeStatuses)
@@ -167,7 +167,7 @@ class MotorcycleController extends Controller
             ->orderBy('start_date', 'asc')
             ->get();
 
-        // FIKSASI: Jika ada transaksi berjalan/mendatang, tampilkan modal daftar WA pelanggan
+        // 2. Jika ada transaksi aktif/mendatang, cegah hapus & tampilkan modal daftar WA
         if ($activeBookings->count() > 0) {
             return redirect()
                 ->back()
@@ -175,13 +175,19 @@ class MotorcycleController extends Controller
                 ->with('deleted_motor_name', $motorcycle->name);
         }
 
-        // Hapus file gambar jika ada
+        // 3. FIKSASI INTEGRITY CONSTRAINT:
+        // Bersihkan relasi riwayat booking lampau/dibatalkan agar tidak bentrok foreign key
+        $motorcycle->bookings()->delete();
+
+        // 4. Hapus file gambar jika ada
         if ($motorcycle->image) {
             Storage::disk('public')->delete($motorcycle->image);
         }
 
+        // 5. Hapus motor dari database
         $motorcycle->delete();
 
+        // 6. Kembalikan notifikasi khusus hapus
         return redirect()
             ->route('admin.motorcycles.index')
             ->with('success', 'Motor berhasil dihapus.');

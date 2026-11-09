@@ -1,0 +1,31 @@
+[33me15b397[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/customer[m[33m)[m fixed update. perbaikan admin dan customer
+ .../Controllers/Admin/MotorcycleController.php     |  38 [32m+[m[31m-[m
+ app/Http/Controllers/Auth/GoogleController.php     |  52 [32m++[m
+ app/Http/Controllers/Auth/LoginController.php      |  13 [32m+[m[31m-[m
+ app/Http/Controllers/Auth/RegisterController.php   |  76 [32m+[m[31m-[m
+ app/Http/Controllers/ProfileController.php         |  56 [32m+[m[31m-[m
+ app/Http/Controllers/User/BookingController.php    |  56 [32m+[m[31m-[m
+ app/Http/Controllers/User/MotorcycleController.php |  14 [32m+[m[31m-[m
+ app/Models/User.php                                |   3 [32m+[m[31m-[m
+ config/services.php                                |   6 [32m+[m
+ ...6_10_24_052128_add_google_id_to_users_table.php |  25 [32m+[m
+ package-lock.json                                  |   2 [32m+[m[31m-[m
+ resources/views/admin/bookings/index.blade.php     | 313 [32m+++++[m[31m---[m
+ resources/views/admin/bookings/show.blade.php      | 328 [32m++++[m[31m----[m
+ resources/views/admin/dashboard.blade.php          |  60 [32m+[m[31m-[m
+ resources/views/admin/motorcycles/index.blade.php  | 253 [32m+++[m[31m---[m
+ resources/views/auth/login.blade.php               |  19 [32m+[m[31m-[m
+ resources/views/auth/register.blade.php            |  15 [32m+[m[31m-[m
+ resources/views/layouts/footer.blade.php           |  69 [32m+[m[31m-[m
+ resources/views/layouts/navigation.blade.php       | 341 [32m+++++[m[31m---[m
+ resources/views/user/bookings/create.blade.php     | 121 [32m+[m[31m--[m
+ resources/views/user/bookings/index.blade.php      |  55 [32m+[m[31m-[m
+ resources/views/user/bookings/invoice.blade.php    | 865 [32m+++++++++++++++++[m[31m----[m
+ resources/views/user/bookings/invoice2.blade.php   | 448 [32m+++++++++++[m
+ resources/views/user/bookings/show.blade.php       |  59 [32m+[m[31m-[m
+ resources/views/user/bookings/status.blade.php     |   4 [32m+[m[31m-[m
+ resources/views/user/motorcycles/index.blade.php   | 159 [32m+++[m[31m-[m
+ resources/views/user/motorcycles/show.blade.php    | 194 [32m+++[m[31m--[m
+ resources/views/welcome.blade.php                  | 478 [32m+++++++++[m[31m---[m
+ routes/web.php                                     |  93 [32m++[m[31m-[m
+ 29 files changed, 3102 insertions(+), 1113 deletions(-)
